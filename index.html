@@ -284,13 +284,12 @@
       try { localStorage.setItem(key, val); } catch(e){}
     }
 
-    // ✅ MUSIC: start exactly on screen 19 (This one / That one)
+    // ✅ MUSIC: start on slide "This one / That one"
     const YT_ID = "5sMKX22BHeE";
     let musicStarted = false;
     let unmuteArmed = false;
 
     function startMusicSoft(){
-      // start muted autoplay (allowed)
       ytMusic.src =
         `https://www.youtube.com/embed/${YT_ID}` +
         `?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
@@ -339,71 +338,55 @@
       btnA.style.display = "block";
       btnB.style.display = "block";
 
-      // keep music running once started; only stop on full restart (screen 0)
+      // keep music running once started; only stop on full restart
       unmuteArmed = false;
       card.onpointerdown = null;
     }
 
     function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
-
     function placeButtons(aLeftPct=18, bLeftPct=62){
       const z = zone.getBoundingClientRect();
       const a = btnA.getBoundingClientRect();
       const b = btnB.getBoundingClientRect();
-
       const aLeftPx = (z.width * (aLeftPct/100));
       const bLeftPx = (z.width * (bLeftPct/100));
-
       btnA.style.left = clamp(aLeftPx, 0, z.width - a.width) + "px";
       btnB.style.left = clamp(bLeftPx, 0, z.width - b.width) + "px";
-
       const centerTopA = (z.height - a.height) / 2;
       const centerTopB = (z.height - b.height) / 2;
-
       btnA.style.top = centerTopA + "px";
       btnB.style.top = centerTopB + "px";
-
       btnA.style.transform = "translate(0,0)";
       btnB.style.transform = "translate(0,0)";
     }
-
     function dodge(btn, px, py, strength){
       const z = zone.getBoundingClientRect();
       const b = btn.getBoundingClientRect();
       const cx = b.left + b.width/2;
       const cy = b.top + b.height/2;
-
       let dx = cx - px;
       let dy = cy - py;
       let mag = Math.hypot(dx,dy) || 1;
       dx/=mag; dy/=mag;
-
       let newLeft = (b.left - z.left) + dx*strength;
       let newTop  = (b.top  - z.top ) + dy*strength;
-
       btn.style.left = clamp(newLeft, 0, z.width - b.width) + "px";
       btn.style.top  = clamp(newTop , 0, z.height - b.height) + "px";
       btn.style.transform = "translate(0,0)";
     }
-
     function near(btn, px, py, dist){
       const r = btn.getBoundingClientRect();
       const cx = r.left + r.width/2;
       const cy = r.top + r.height/2;
       return Math.hypot(cx-px, cy-py) < dist;
     }
-
     function moveYesRandom(){
       const z = zone.getBoundingClientRect();
       const b = btnA.getBoundingClientRect();
       const maxLeft = z.width - b.width;
       const maxTop  = z.height - b.height;
-
-      const left = Math.random() * Math.max(0, maxLeft);
-      const top  = Math.random() * Math.max(0, maxTop);
-
-      btnA.style.left = left + "px";
-      btnA.style.top  = top + "px";
+      btnA.style.left = (Math.random() * Math.max(0, maxLeft)) + "px";
+      btnA.style.top  = (Math.random() * Math.max(0, maxTop)) + "px";
       btnA.style.transform = "translate(0,0)";
     }
 
@@ -418,7 +401,6 @@
     let lastThoughtPick = null;
     let secretTitleClicks = 0;
     let secretTitleArmed = true;
-
     let obeyTimer = null;
     let obeyActive = false;
 
@@ -468,7 +450,7 @@
       oneUnlocked = false;
 
       if(screen === 0){
-        stopMusic(); // ✅ full reset stops music
+        stopMusic();
         setIntroTitle();
 
         btnA.textContent = "Yes";
@@ -725,7 +707,7 @@
         return;
       }
 
-      // ✅ MUSIC STARTS ON THIS SLIDE (screen 19), not later
+      // ✅ MUSIC starts here (This one / That one). No extra hint later.
       if(screen === 19){
         titleEl.textContent = "Okay… one last thing.";
         textEl.textContent = "Pick any button.";
@@ -736,12 +718,8 @@
 
         requestAnimationFrame(()=>placeButtons(22, 58));
 
-        // ✅ start music immediately when this slide shows up
-        // (muted autoplay, allowed)
         if(!musicStarted) startMusicSoft();
-
-        // (optional) allow unmute now already
-        armUnmute("Tap anywhere for sound 🔊");
+        armUnmute("Tap anywhere for sound 🔊"); // ✅ hint here only
 
         const pick = ()=> go(21);
         btnA.onclick = pick;
@@ -785,9 +763,7 @@
         textEl.textContent = "";
         clearActions();
 
-        // keep music running
-        armUnmute("Tap anywhere for sound 🔊");
-
+        // ✅ no sound hint here anymore (it already appeared in screen 19)
         const yes = ()=> celebrate();
         addAction("Yes 💖", yes);
         addAction("Definitely 😌", yes);
@@ -801,7 +777,7 @@
     function celebrate(){
       clearActions();
 
-      // ensure unmuted on YES click (user gesture)
+      // unmute on YES click (user gesture)
       setHint("");
       unmuteArmed = false;
       unmuteMusic();
