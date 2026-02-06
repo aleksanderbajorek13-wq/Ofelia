@@ -90,6 +90,34 @@ button{
   from{transform:scale(.96); opacity:0}
   to{transform:scale(1); opacity:1}
 }
+
+/* ✅ Fullscreen YES overlay mode */
+.yes-fullscreen{
+  position:fixed !important;
+  inset:0 !important;
+  left:0 !important;
+  top:0 !important;
+  width:100vw !important;
+  height:100vh !important;
+  transform:none !important;
+  border-radius:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  font-size:clamp(26px,7vw,64px) !important;
+  z-index:9999 !important;
+  box-shadow:none !important;
+}
+
+/* zodat YES mooi “pulse” voelt eens fullscreen */
+@keyframes softPulse{
+  0%{transform:scale(1)}
+  50%{transform:scale(1.03)}
+  100%{transform:scale(1)}
+}
+.yes-fullscreen.pulse{
+  animation:softPulse 1.2s ease-in-out infinite;
+}
 </style>
 </head>
 
@@ -98,7 +126,7 @@ button{
 <canvas id="confettiCanvas"></canvas>
 <div id="hearts"></div>
 
-<!-- YouTube muziek (kan op gsm nog steeds blokkeren, maar je vroeg “zoals ervoor”) -->
+<!-- YouTube muziek (kan op gsm blokkeren, maar je vroeg “zoals ervoor”) -->
 <iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
 
 <main class="card">
@@ -137,25 +165,49 @@ function fullScreenConfetti(){
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 
-// ✅ YES groeit tot (bijna) full page
-let yesScale=1;
-const YES_MAX_SCALE = 12; // groter = meer “cover”
-const YES_GROW_STEP = 0.18; // groei per “dodge”
-
-function growYes(){
-  yesScale=Math.min(YES_MAX_SCALE, yesScale + YES_GROW_STEP);
-  yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
-
-  // Als YES super groot wordt: zorg dat hij bovenaan blijft
-  yesBtn.style.zIndex = 50;
+function createHeart(){
+  const span=document.createElement("span");
+  span.innerHTML="💖";
+  span.style.left=Math.random()*100+"vw";
+  span.style.animationDuration=4+Math.random()*4+"s";
+  hearts.appendChild(span);
+  setTimeout(()=>span.remove(),8000);
 }
 
-// ✅ NO verdwijnt pas na “lange tijd”
-// Na 25s zonder YES te klikken (maar wel spelen) begint NO te verdwijnen,
-// en na 35s is hij helemaal weg.
-const NO_FADE_START_MS = 25000;
-const NO_GONE_MS = 35000;
+/* ✅ YES groeit tot hij fullscreen wordt */
+let yesScale=1;
+const YES_GROW_STEP = 0.22;   // groei per dodge
+const YES_FULLSCREEN_AT = 4.2; // vanaf deze scale: fullscreen
+let yesIsFullscreen=false;
 
+function makeYesFullscreen(){
+  if(yesIsFullscreen) return;
+  yesIsFullscreen=true;
+
+  // zet button in fullscreen overlay
+  yesBtn.classList.add("yes-fullscreen","pulse");
+  yesBtn.textContent="YES 💖";
+
+  // No mag nog even bestaan, maar we zetten hem weg uit de flow
+  // (hij verdwijnt sowieso via timer)
+  noBtn.style.zIndex = 1;
+}
+
+function growYes(){
+  if(yesIsFullscreen) return;
+
+  yesScale = yesScale + YES_GROW_STEP;
+  yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
+  yesBtn.style.zIndex = 50;
+
+  if(yesScale >= YES_FULLSCREEN_AT){
+    makeYesFullscreen();
+  }
+}
+
+/* ✅ NO verdwijnt traag (niet te snel) */
+const NO_FADE_START_MS = 25000; // start fade na 25s
+const NO_GONE_MS = 35000;       // volledig weg na 35s
 let startTime = Date.now();
 let noHidden = false;
 
@@ -177,7 +229,7 @@ function updateNoTimer(){
 }
 setInterval(updateNoTimer, 200);
 
-// ✅ NO blijft weg springen + YES groeit telkens
+/* ✅ NO springt weg + YES groeit */
 function moveNo(px,py){
   if(noHidden) return;
 
@@ -206,28 +258,36 @@ zone.addEventListener("pointermove",e=>{
   if(d<140) moveNo(e.clientX,e.clientY);
 });
 
-function createHeart(){
-  const span=document.createElement("span");
-  span.innerHTML="💖";
-  span.style.left=Math.random()*100+"vw";
-  span.style.animationDuration=4+Math.random()*4+"s";
-  hearts.appendChild(span);
-  setTimeout(()=>span.remove(),8000);
+/* ✅ Als fullscreen YES actief is, maakt pointermove NO “irrelevant” */
+document.addEventListener("pointermove", ()=>{
+  if(yesIsFullscreen) {
+    // optioneel: laat NO sneller verdwijnen als YES fullscreen is
+    // (comment weg als je dit wil)
+    // startTime = Date.now() - (NO_FADE_START_MS + 2000);
+  }
+});
+
+/* ✅ YES click: muziek + confetti + hearts + result */
+function celebrate(){
+  zone.style.display="none";
+  hint.style.display="none";
+  result.style.display="block";
+  fullScreenConfetti();
+  setInterval(createHeart,300);
 }
 
 yesBtn.addEventListener("click",()=>{
   document.getElementById("ytMusic").src =
     "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
 
-  zone.style.display="none";
-  hint.style.display="none";
-  result.style.display="block";
-
-  fullScreenConfetti();
-  setInterval(createHeart,300);
+  // Als YES fullscreen is: klik voelt “mega”
+  if(yesIsFullscreen){
+    yesBtn.classList.remove("pulse");
+    yesBtn.textContent="YAAAY 🎉";
+  }
+  celebrate();
 });
 </script>
 
 </body>
 </html>
-
