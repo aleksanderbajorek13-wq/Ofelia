@@ -60,7 +60,9 @@ button{
 
 #yesBtn{left:18%; background:var(--yes); color:#fff}
 #yesBtn:hover{background:var(--yesHover)}
-#noBtn{left:62%; background:#e5e7eb; top:50%; transform:translateY(-50%)}
+
+/* ✅ fix: geef NO ook standaard top + translateY */
+#noBtn{left:62%; top:50%; transform:translateY(-50%); background:#e5e7eb}
 
 .hint{margin-top:10px; font-size:13px; opacity:.7}
 
@@ -88,19 +90,21 @@ button{
 <iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
 
 <main class="card">
-  <h1>Hey Ofelia… will you be my Valentine? 💖</h1>
 
-  <section class="button-zone" id="zone">
-    <button id="yesBtn">Yes</button>
-    <button id="noBtn">No</button>
-  </section>
+<h1>Hey Ofelia… will you be my Valentine? 💖</h1>
 
-  <div class="hint" id="hint">“No” seems a bit shy 😈</div>
+<section class="button-zone" id="zone">
+  <button id="yesBtn">Yes</button>
+  <button id="noBtn">No</button>
+</section>
 
-  <section class="result" id="result">
-    <h2>YAY! 🎉</h2>
-    <div class="loveText">I knew you'd say yes ❤️</div>
-  </section>
+<div class="hint" id="hint">“No” seems a bit shy 😈</div>
+
+<section class="result" id="result">
+  <h2>YAY! 🎉</h2>
+  <div class="loveText">I knew you'd say yes ❤️</div>
+</section>
+
 </main>
 
 <script>
@@ -112,7 +116,8 @@ const hint=document.getElementById("hint");
 const hearts=document.getElementById("hearts");
 
 const confettiCanvas=document.getElementById("confettiCanvas");
-const confettiInstance=window.confetti
+/* ✅ safe: als confetti script niet laadt, crasht pagina niet */
+const confettiInstance = window.confetti
   ? confetti.create(confettiCanvas,{resize:true,useWorker:true})
   : null;
 
@@ -122,12 +127,10 @@ function fullScreenConfetti(){
 }
 
 let yesScale=1;
-const YES_MAX_SCALE = 2.2;   // ✅ middelgrote max
-const YES_GROW_STEP = 0.06;  // ✅ trage groei
-
 function growYes(){
-  yesScale=Math.min(YES_MAX_SCALE, yesScale + YES_GROW_STEP);
-  yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
+  yesScale=Math.min(2.2,yesScale+.1);
+  // ✅ YES blijft exact zo: translateY(-50%) + scale
+  yesBtn.style.transform=`translateY(-50%) scale(${yesScale})`;
 }
 
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
@@ -142,10 +145,12 @@ function moveNo(px,py){
   dx/=mag; dy/=mag;
 
   let newLeft=(b.left-z.left)+dx*140;
-  let newTop =(b.top -z.top )+dy*140;
+  let newTop=(b.top-z.top)+dy*140;
 
   noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
-  noBtn.style.top =clamp(newTop ,0,z.height-b.height)+"px";
+  noBtn.style.top=clamp(newTop,0,z.height-b.height)+"px";
+
+  // ✅ NO blijft netjes gecentreerd (niet "none")
   noBtn.style.transform="translateY(-50%)";
 
   growYes();
@@ -167,7 +172,7 @@ function createHeart(){
 }
 
 yesBtn.addEventListener("click",()=>{
-  document.getElementById("ytMusic").src =
+  document.getElementById("ytMusic").src=
     "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
 
   zone.style.display="none";
@@ -181,3 +186,4 @@ yesBtn.addEventListener("click",()=>{
 
 </body>
 </html>
+
