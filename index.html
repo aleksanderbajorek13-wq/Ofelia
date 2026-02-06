@@ -55,7 +55,6 @@ button{
   padding:16px 24px; font-size:18px; font-weight:800;
   border-radius:999px; border:none; cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.14);
-  transition:opacity .35s ease, filter .35s ease;
 }
 
 #yesBtn{
@@ -84,7 +83,7 @@ button{
   to{transform:scale(1); opacity:1}
 }
 
-/* ✅ Fullscreen YES: GEEN transform scaling meer (dus geen rare laptop vervorming) */
+/* ✅ Fullscreen YES: geen rare scaling op laptop */
 .yes-fullscreen{
   position:fixed !important;
   inset:0 !important;
@@ -93,7 +92,7 @@ button{
   left:0 !important;
   top:0 !important;
 
-  transform:none !important;          /* belangrijk: voorkomt rare scaling */
+  transform:none !important;
   border-radius:0 !important;
 
   display:flex !important;
@@ -160,15 +159,14 @@ function createHeart(){
   setTimeout(()=>span.remove(),8000);
 }
 
-/* ✅ YES groeit trager + fullscreen pas laat */
+/* ✅ YES groeit en wordt fullscreen (NO blijft altijd bestaan) */
 let yesScale=1;
 let yesIsFullscreen=false;
 
-const YES_GROW_STEP = 0.05;     // ✅ trager (was veel te snel)
-const YES_FULLSCREEN_AT = 2.6;  // ✅ pas later fullscreen (zet hoger = nog later)
+const YES_GROW_STEP = 0.05;     // trage groei
+const YES_FULLSCREEN_AT = 2.6;  // wanneer hij fullscreen wordt
 
 function setYesTransform(){
-  // zolang niet fullscreen: normale scaling in de zone
   yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
 }
 
@@ -176,55 +174,21 @@ function makeYesFullscreen(){
   if(yesIsFullscreen) return;
   yesIsFullscreen=true;
 
-  // reset alle “zone” positioning die rare effects kan geven
   yesBtn.classList.add("yes-fullscreen");
-  yesBtn.style.left = "0";
-  yesBtn.style.top  = "0";
-
-  // tekst een beetje leuker
-  yesBtn.textContent = "YES 💖";
+  yesBtn.style.left="0";
+  yesBtn.style.top="0";
+  yesBtn.textContent="YES 💖";
 }
 
 function growYes(){
   if(yesIsFullscreen) return;
-
   yesScale = Math.min(10, yesScale + YES_GROW_STEP);
   setYesTransform();
-
-  if(yesScale >= YES_FULLSCREEN_AT){
-    makeYesFullscreen();
-  }
+  if(yesScale >= YES_FULLSCREEN_AT) makeYesFullscreen();
 }
 
-/* ✅ NO verdwijnt traag (zelfde timing, kan je tunen) */
-const NO_FADE_START_MS = 25000; // start fade na 25s
-const NO_GONE_MS = 40000;       // volledig weg na 40s (iets trager gemaakt)
-
-let startTime = Date.now();
-let noHidden = false;
-
-function updateNoTimer(){
-  if(noHidden) return;
-  const elapsed = Date.now() - startTime;
-
-  if(elapsed < NO_FADE_START_MS) return;
-
-  const t = clamp((elapsed - NO_FADE_START_MS) / (NO_GONE_MS - NO_FADE_START_MS), 0, 1);
-  noBtn.style.opacity = String(1 - t);
-  noBtn.style.filter = `blur(${t*2}px)`;
-
-  if(t >= 1){
-    noBtn.style.display = "none";
-    noHidden = true;
-    hint.textContent = "Okayyy… only YES left 😇";
-  }
-}
-setInterval(updateNoTimer, 200);
-
-/* ✅ NO springt weg + YES groeit langzaam */
+/* ✅ NO springt weg + YES groeit */
 function moveNo(px,py){
-  if(noHidden) return;
-
   const z=zone.getBoundingClientRect();
   const b=noBtn.getBoundingClientRect();
 
@@ -244,7 +208,6 @@ function moveNo(px,py){
 }
 
 zone.addEventListener("pointermove",e=>{
-  if(noHidden) return;
   const b=noBtn.getBoundingClientRect();
   const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
   if(d<140) moveNo(e.clientX,e.clientY);
@@ -254,7 +217,6 @@ function celebrate(){
   zone.style.display="none";
   hint.style.display="none";
   result.style.display="block";
-
   fullScreenConfetti();
   setInterval(createHeart,300);
 }
@@ -263,9 +225,7 @@ yesBtn.addEventListener("click",()=>{
   document.getElementById("ytMusic").src =
     "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
 
-  if(yesIsFullscreen){
-    yesBtn.textContent="YAAAY 🎉";
-  }
+  if(yesIsFullscreen) yesBtn.textContent="YAAAY 🎉";
   celebrate();
 });
 </script>
