@@ -12,6 +12,7 @@
   --bg1:#ffd6e7; --bg2:#ffeef6; --card:#ffffffcc;
   --yes:#ff3b7a; --yesHover:#ff1f68;
 }
+
 *{box-sizing:border-box}
 
 body{
@@ -30,6 +31,7 @@ body{
   font-size:24px; animation:floatUp linear infinite;
   opacity:.9;
 }
+
 @keyframes floatUp{
   from{transform:translateY(0) scale(.8); opacity:1}
   to{transform:translateY(-110vh) scale(1.4); opacity:0}
@@ -40,68 +42,39 @@ body{
   background:var(--card); backdrop-filter:blur(10px);
   border-radius:22px; text-align:center;
   box-shadow:0 18px 60px rgba(0,0,0,.15);
-  position:relative; z-index:2;
 }
 
 h1{font-size:clamp(26px,4vw,44px); margin:12px 0 18px}
 
 .button-zone{
   position:relative; width:min(520px,92%);
-  height:160px; margin:0 auto; touch-action:none;
+  height:150px; margin:0 auto; touch-action:none;
 }
 
 button{
-  position:absolute; top:50%;
+  position:absolute; top:50%; transform:translateY(-50%);
   padding:16px 24px; font-size:18px; font-weight:800;
   border-radius:999px; border:none; cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.14);
 }
 
-#yesBtn{
-  left:18%;
-  background:var(--yes); color:#fff;
-  transform:translateY(-50%) scale(1);
-  z-index:5;
-}
+#yesBtn{left:18%; background:var(--yes); color:#fff}
 #yesBtn:hover{background:var(--yesHover)}
-
-#noBtn{
-  left:62%;
-  background:#e5e7eb;
-  top:50%;
-  transform:translateY(-50%);
-}
+#noBtn{left:62%; background:#e5e7eb; top:50%; transform:translateY(-50%)}
 
 .hint{margin-top:10px; font-size:13px; opacity:.7}
 
 .result{display:none; margin-top:18px; animation:pop .35s ease}
 .result h2{font-size:clamp(30px,4.5vw,46px); margin:10px 0}
-.loveText{font-size:22px; font-weight:700; color:#ff1f68; margin-top:8px}
+
+.loveText{
+  font-size:22px; font-weight:700; color:#ff1f68;
+  margin-top:8px;
+}
 
 @keyframes pop{
   from{transform:scale(.96); opacity:0}
   to{transform:scale(1); opacity:1}
-}
-
-/* ✅ Fullscreen YES: geen rare scaling op laptop */
-.yes-fullscreen{
-  position:fixed !important;
-  inset:0 !important;
-  width:100vw !important;
-  height:100vh !important;
-  left:0 !important;
-  top:0 !important;
-
-  transform:none !important;
-  border-radius:0 !important;
-
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-
-  font-size:clamp(28px,7vw,72px) !important;
-  z-index:9999 !important;
-  box-shadow:none !important;
 }
 </style>
 </head>
@@ -148,46 +121,17 @@ function fullScreenConfetti(){
   confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
 }
 
-function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
-
-function createHeart(){
-  const span=document.createElement("span");
-  span.innerHTML="💖";
-  span.style.left=Math.random()*100+"vw";
-  span.style.animationDuration=4+Math.random()*4+"s";
-  hearts.appendChild(span);
-  setTimeout(()=>span.remove(),8000);
-}
-
-/* ✅ YES groeit en wordt fullscreen (NO blijft altijd bestaan) */
 let yesScale=1;
-let yesIsFullscreen=false;
+const YES_MAX_SCALE = 2.2;   // ✅ middelgrote max
+const YES_GROW_STEP = 0.06;  // ✅ trage groei
 
-const YES_GROW_STEP = 0.05;     // trage groei
-const YES_FULLSCREEN_AT = 2.6;  // wanneer hij fullscreen wordt
-
-function setYesTransform(){
+function growYes(){
+  yesScale=Math.min(YES_MAX_SCALE, yesScale + YES_GROW_STEP);
   yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
 }
 
-function makeYesFullscreen(){
-  if(yesIsFullscreen) return;
-  yesIsFullscreen=true;
+function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
 
-  yesBtn.classList.add("yes-fullscreen");
-  yesBtn.style.left="0";
-  yesBtn.style.top="0";
-  yesBtn.textContent="YES 💖";
-}
-
-function growYes(){
-  if(yesIsFullscreen) return;
-  yesScale = Math.min(10, yesScale + YES_GROW_STEP);
-  setYesTransform();
-  if(yesScale >= YES_FULLSCREEN_AT) makeYesFullscreen();
-}
-
-/* ✅ NO springt weg + YES groeit */
 function moveNo(px,py){
   const z=zone.getBoundingClientRect();
   const b=noBtn.getBoundingClientRect();
@@ -213,20 +157,25 @@ zone.addEventListener("pointermove",e=>{
   if(d<140) moveNo(e.clientX,e.clientY);
 });
 
-function celebrate(){
-  zone.style.display="none";
-  hint.style.display="none";
-  result.style.display="block";
-  fullScreenConfetti();
-  setInterval(createHeart,300);
+function createHeart(){
+  const span=document.createElement("span");
+  span.innerHTML="💖";
+  span.style.left=Math.random()*100+"vw";
+  span.style.animationDuration=4+Math.random()*4+"s";
+  hearts.appendChild(span);
+  setTimeout(()=>span.remove(),8000);
 }
 
 yesBtn.addEventListener("click",()=>{
   document.getElementById("ytMusic").src =
     "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
 
-  if(yesIsFullscreen) yesBtn.textContent="YAAAY 🎉";
-  celebrate();
+  zone.style.display="none";
+  hint.style.display="none";
+  result.style.display="block";
+
+  fullScreenConfetti();
+  setInterval(createHeart,300);
 });
 </script>
 
