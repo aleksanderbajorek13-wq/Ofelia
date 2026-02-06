@@ -9,11 +9,10 @@
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
 <style>
-:root {
+:root{
   --bg1:#ffd6e7; --bg2:#ffeef6; --card:#ffffffcc;
   --yes:#ff3b7a; --yesHover:#ff1f68;
 }
-
 *{box-sizing:border-box}
 
 body{
@@ -50,7 +49,7 @@ h1{font-size:clamp(26px,4vw,44px); margin:12px 0 18px}
 
 .button-zone{
   position:relative; width:min(520px,92%);
-  height:150px; margin:0 auto; touch-action:none;
+  height:160px; margin:0 auto; touch-action:none;
 }
 
 button{
@@ -58,35 +57,21 @@ button{
   padding:16px 24px; font-size:18px; font-weight:800;
   border-radius:999px; border:none; cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.14);
+  transition:opacity .25s ease, filter .25s ease;
 }
 
 #yesBtn{left:18%; transform:translateY(-50%); background:var(--yes); color:#fff}
 #yesBtn:hover{background:var(--yesHover)}
 
-/* ✅ fix: No heeft start-top + translateY, zodat verplaatsen op gsm netjes blijft */
 #noBtn{left:62%; top:50%; transform:translateY(-50%); background:#e5e7eb}
 
 .hint{margin-top:10px; font-size:13px; opacity:.7}
-
 .result{display:none; margin-top:18px; animation:pop .35s ease}
 .result h2{font-size:clamp(30px,4.5vw,46px); margin:10px 0}
+.loveText{font-size:22px; font-weight:700; color:#ff1f68; margin-top:8px}
 
-.loveText{
-  font-size:22px; font-weight:700; color:#ff1f68;
-  margin-top:8px;
-}
-
-.smallLink{
-  display:inline-block;
-  margin-top:10px;
-  font-size:14px;
-  font-weight:700;
-  color:#0a0a0a;
-  background:#ffffffb8;
-  padding:10px 14px;
-  border-radius:999px;
-  text-decoration:none;
-  box-shadow:0 10px 24px rgba(0,0,0,.10);
+.smallNote{
+  margin-top:10px; font-size:13px; opacity:.75;
 }
 
 @keyframes pop{
@@ -99,6 +84,11 @@ button{
 <body>
 <canvas id="confettiCanvas"></canvas>
 <div id="hearts"></div>
+
+<!-- ✅ Echte audio (werkt op gsm na klik) -->
+<audio id="bgMusic" preload="auto" playsinline>
+  <source src="music.mp3" type="audio/mpeg">
+</audio>
 
 <main class="card">
   <h1>Hey Ofelia… will you be my Valentine? 💖</h1>
@@ -113,11 +103,7 @@ button{
   <section class="result" id="result">
     <h2>YAY! 🎉</h2>
     <div class="loveText">I knew you'd say yes ❤️</div>
-
-    <!-- ✅ werkt altijd op gsm: opent Spotify-app/web -->
-    <a id="spotifyLink" class="smallLink" target="_blank" rel="noopener">
-      Tap to play our song 🎵 (Spotify)
-    </a>
+    <div class="smallNote" id="audioNote" style="display:none;">Tap once more to enable sound 🔊</div>
   </section>
 </main>
 
@@ -128,13 +114,10 @@ const noBtn=document.getElementById("noBtn");
 const result=document.getElementById("result");
 const hint=document.getElementById("hint");
 const hearts=document.getElementById("hearts");
-
-const spotifyUrl="https://open.spotify.com/track/3NZJlJemX3mzjf56MqC5ML?si=f0fced8463ea4ff6";
-document.getElementById("spotifyLink").href = spotifyUrl;
+const audio=document.getElementById("bgMusic");
+const audioNote=document.getElementById("audioNote");
 
 const confettiCanvas=document.getElementById("confettiCanvas");
-
-// ✅ safe confetti: crasht niet als CDN ooit faalt
 let confettiInstance=null;
 if (window.confetti) {
   confettiInstance=confetti.create(confettiCanvas,{resize:true,useWorker:true});
@@ -143,41 +126,6 @@ function fullScreenConfetti(){
   if(!confettiInstance) return;
   confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
 }
-
-let yesScale=1;
-function growYes(){
-  yesScale=Math.min(2.2,yesScale+.1);
-  yesBtn.style.transform=`translateY(-50%) scale(${yesScale})`;
-}
-
-function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
-
-function moveNo(px,py){
-  const z=zone.getBoundingClientRect();
-  const b=noBtn.getBoundingClientRect();
-
-  let dx=(b.left+b.width/2)-px;
-  let dy=(b.top+b.height/2)-py;
-  let mag=Math.hypot(dx,dy)||1;
-  dx/=mag; dy/=mag;
-
-  let newLeft=(b.left-z.left)+dx*140;
-  let newTop =(b.top -z.top )+dy*140;
-
-  noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
-  noBtn.style.top =clamp(newTop ,0,z.height-b.height)+"px";
-
-  // ✅ behoud translateY(-50%) zodat hij mooi centreert op mobiel
-  noBtn.style.transform="translateY(-50%)";
-
-  growYes();
-}
-
-zone.addEventListener("pointermove",e=>{
-  const b=noBtn.getBoundingClientRect();
-  const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
-  if(d<140) moveNo(e.clientX,e.clientY);
-});
 
 function createHeart(){
   const span=document.createElement("span");
@@ -188,22 +136,94 @@ function createHeart(){
   setTimeout(()=>span.remove(),8000);
 }
 
-yesBtn.addEventListener("click",()=>{
+function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
+
+// ✅ YES groeit, NO verdwijnt na genoeg "pogingen"
+let yesScale=1;
+let noDodges=0;
+const NO_DISAPPEAR_AFTER = 8; // pas aan als je sneller/langzamer wil
+
+function updateNoVisibility(){
+  const remaining = Math.max(0, NO_DISAPPEAR_AFTER - noDodges);
+  const t = remaining / NO_DISAPPEAR_AFTER; // 1 -> 0
+  noBtn.style.opacity = (0.15 + 0.85*t).toFixed(2); // nooit meteen 0
+  noBtn.style.filter = `blur(${(1-t)*2}px)`;
+
+  if(noDodges >= NO_DISAPPEAR_AFTER){
+    noBtn.style.display = "none";
+    hint.textContent = "Okayyy… only YES left 😇";
+  }
+}
+
+function growYes(){
+  yesScale = Math.min(3.0, yesScale + 0.12);
+  yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
+}
+
+function moveNo(px,py){
+  const z=zone.getBoundingClientRect();
+  const b=noBtn.getBoundingClientRect();
+
+  let dx=(b.left+b.width/2)-px;
+  let dy=(b.top+b.height/2)-py;
+  let mag=Math.hypot(dx,dy)||1;
+  dx/=mag; dy/=mag;
+
+  let newLeft=(b.left-z.left)+dx*150;
+  let newTop =(b.top -z.top )+dy*150;
+
+  noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
+  noBtn.style.top =clamp(newTop ,0,z.height-b.height)+"px";
+  noBtn.style.transform="translateY(-50%)";
+
+  noDodges++;
+  growYes();
+  updateNoVisibility();
+}
+
+zone.addEventListener("pointermove",e=>{
+  if (noBtn.style.display === "none") return;
+  const b=noBtn.getBoundingClientRect();
+  const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
+  if(d<150) moveNo(e.clientX,e.clientY);
+});
+
+// Extra: als iemand toch op NO klikt (soms op mobiel), doe hetzelfde
+noBtn.addEventListener("click",(e)=>{
+  e.preventDefault();
+  const z=zone.getBoundingClientRect();
+  moveNo(z.left + Math.random()*z.width, z.top + Math.random()*z.height);
+});
+
+// ✅ YES click: muziek autoplay + feest
+yesBtn.addEventListener("click", async ()=>{
+  // muziek
+  audio.loop = true;
+  audio.volume = 0.9;
+  try{
+    await audio.play(); // op gsm werkt dit omdat het uit een click komt
+  }catch(err){
+    // als de browser toch lastig doet: vraag 1 extra tap
+    audioNote.style.display="block";
+  }
+
   zone.style.display="none";
   hint.style.display="none";
   result.style.display="block";
 
   fullScreenConfetti();
   setInterval(createHeart,300);
-
-  // ✅ Open Spotify automatisch NA de click (werkt op gsm)
-  setTimeout(()=>{
-    // iOS/Safari is soms kieskeurig: met _blank is het het betrouwbaarst
-    window.open(spotifyUrl, "_blank", "noopener");
-  }, 600);
 });
+
+// Als autoplay faalde: tweede tap ergens op de pagina start het alsnog
+document.addEventListener("pointerdown", async ()=>{
+  if (audioNote.style.display === "block") {
+    try{
+      await audio.play();
+      audioNote.style.display="none";
+    }catch(e){}
+  }
+}, {once:false});
 </script>
 </body>
 </html>
-
-
