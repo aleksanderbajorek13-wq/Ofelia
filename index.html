@@ -307,9 +307,7 @@
       btnA.style.display = "block";
       btnB.style.display = "block";
 
-      // do not hard-stop music here anymore; we control it per-screen
-      // ytMusic.src = "";
-
+      // reset per-screen unmute handler
       unmuteArmed = false;
       card.onpointerdown = null;
     }
@@ -394,6 +392,29 @@
     let obeyTimer = null;
     let obeyActive = false;
 
+    // MUSIC state
+    const YT_ID = "5sMKX22BHeE";
+    let unmuteArmed = false;
+    let musicStarted = false; // ✅ start only once and then keep running
+
+    function startMusicSoftOnce(){
+      if(musicStarted) return;
+      musicStarted = true;
+      ytMusic.src =
+        `https://www.youtube.com/embed/${YT_ID}` +
+        `?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
+    }
+    function unmuteMusic(){
+      // reloads the embed to unmute (browser restriction-friendly)
+      ytMusic.src =
+        `https://www.youtube.com/embed/${YT_ID}` +
+        `?autoplay=1&mute=0&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
+    }
+    function stopMusic(){
+      musicStarted = false;
+      ytMusic.src = "";
+    }
+
     // ✅ Easter egg: 7x op titel
     titleEl.style.cursor = "pointer";
     titleEl.addEventListener("click", ()=>{
@@ -433,37 +454,30 @@
       titleEl.textContent = pool[Math.floor(Math.random()*pool.length)];
     }
 
-    // ✅ music helpers (muted autoplay then unmute on first tap)
-    const YT_ID = "5sMKX22BHeE";
-    let unmuteArmed = false;
-
-    function startMusicSoft(){
-      ytMusic.src =
-        `https://www.youtube.com/embed/${YT_ID}` +
-        `?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
-    }
-    function unmuteMusic(){
-      ytMusic.src =
-        `https://www.youtube.com/embed/${YT_ID}` +
-        `?autoplay=1&mute=0&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
-    }
-    function stopMusic(){
-      ytMusic.src = "";
+    function armUnmuteOnce(message="Tap anywhere for sound 🔊"){
+      if(!musicStarted) return;
+      if(!unmuteArmed){
+        unmuteArmed = true;
+        setHint(message);
+        card.onpointerdown = ()=>{
+          if(!unmuteArmed) return;
+          unmuteArmed = false;
+          setHint("");
+          unmuteMusic();
+          card.onpointerdown = null;
+        };
+      }
     }
 
     function go(n){
       screen = n;
       resetUI();
-
       requestAnimationFrame(()=>{ placeButtons(); });
-
       textEl.textContent = "";
       oneUnlocked = false;
 
-      // ---------------- ROUND 0: INTRO ----------------
       if(screen === 0){
-        stopMusic(); // ✅ stop when restarting the whole game
-
+        stopMusic(); // ✅ full reset stops music
         setIntroTitle();
         btnA.textContent = "Yes";
         btnB.textContent = "No";
@@ -480,15 +494,12 @@
         return;
       }
 
-      // ---------------- ROUND 1 ----------------
       if(screen === 1){
         titleEl.textContent = "Try clicking yes.";
         btnA.textContent = "Yes";
         btnB.textContent = "No";
-
         r1YesClicks = 0;
         setHint("");
-
         requestAnimationFrame(()=> placeButtons(62, 18));
 
         btnA.onclick = ()=>{
@@ -498,7 +509,6 @@
             setHint('Hint: Click <b>NO</b> for <b>YES</b> 👀');
           }
         };
-
         btnB.onclick = ()=> go(2);
         return;
       }
@@ -510,11 +520,8 @@
         return;
       }
 
-      // ---------------- ROUND 2 ----------------
       if(screen === 3){
         titleEl.textContent = "Okay, try this.";
-        textEl.textContent = "";
-
         btnA.textContent = "Yes";
         btnB.style.display = "none";
         setHint("");
@@ -525,22 +532,16 @@
           if(r2YesClicks === 2) setHint("Ah, keep going.");
           if(r2YesClicks === 3) setHint("You’re almost there.");
           if(r2YesClicks === 4) setHint("You’re doing it, honey.");
-          if(r2YesClicks < 5){
-            moveYesRandom();
-            return;
-          }
+          if(r2YesClicks < 5){ moveYesRandom(); return; }
           go(4);
         };
-
         setTimeout(()=>moveYesRandom(), 150);
         return;
       }
 
       if(screen === 4){
         titleEl.textContent = "Be honest… what are you thinking right now?";
-        textEl.textContent = "";
         hide(zone);
-
         addAction("I’m confused 😵‍💫", ()=> { lastThoughtPick="confused"; go(5); });
         addAction("This is kinda fun 😏", ()=> { lastThoughtPick="fun"; go(5); });
         addAction("Why am I smiling right now", ()=> { lastThoughtPick="smiling"; go(5); });
@@ -565,7 +566,6 @@
 
       if(screen === 7){
         titleEl.innerHTML = `Choose <span class="oneLink" id="oneLink">one</span>.`;
-        textEl.textContent = "";
         btnA.textContent = "Yes";
         btnB.textContent = "No";
         setHint("");
@@ -600,9 +600,7 @@
         btnA.textContent = "Think";
         btnB.textContent = "Feel";
         setHint("");
-
         secretTitleArmed = false;
-
         btnA.onclick = ()=> { r3Mode="think"; go(9); };
         btnB.onclick = ()=> { r3Mode="feel";  go(13); };
         return;
@@ -691,7 +689,6 @@
         titleEl.textContent = "I don’t usually do things like this.";
         textEl.textContent = "But I wanted this to feel a little different.";
         hide(zone);
-
         addAction("That’s sweet 🥺", ()=> go(18));
         addAction("I like this 😊", ()=> go(18));
         return;
@@ -699,7 +696,6 @@
 
       if(screen === 18){
         titleEl.textContent = "Yeah… I’m glad you do.";
-        textEl.textContent = "";
         hide(zone);
         addAction("Okay, show me more 😄", ()=> go(18.5));
         return;
@@ -737,6 +733,7 @@
         return;
       }
 
+      // ✅ MUSIC STARTS HERE: "one last thing... pick any button"
       if(screen === 19){
         titleEl.textContent = "Okay… one last thing.";
         textEl.textContent = "Pick any button.";
@@ -747,19 +744,20 @@
 
         requestAnimationFrame(()=>placeButtons(22, 58));
 
-        const pick = ()=> go(21);
+        const pick = ()=>{
+          // ✅ start music the moment they pick either button
+          startMusicSoftOnce();
+          // optional: allow them to unmute anytime from now
+          armUnmuteOnce("Tap anywhere for sound 🔊");
+          go(21);
+        };
         btnA.onclick = pick;
         btnB.onclick = pick;
         return;
       }
 
-      // ✅ Build-up screen: start music SOFT one slide earlier (HERE)
       if(screen === 21){
         hide(zone);
-
-        // ✅ start muted music already here for rhythm
-        // (it will become audible on first tap later)
-        startMusicSoft();
 
         titleEl.textContent = "I still have a lot of things I want to ask you someday…";
         textEl.textContent = "";
@@ -795,21 +793,8 @@
         textEl.textContent = "";
         clearActions();
 
-        // ✅ do not restart the video here; keep continuity from screen 21
-        // startMusicSoft();
-
-        // ✅ unmute on first user tap (anywhere on card)
-        if(!unmuteArmed){
-          unmuteArmed = true;
-          setHint("Tap anywhere for sound 🔊");
-
-          card.onpointerdown = ()=>{
-            if(!unmuteArmed) return;
-            unmuteArmed = false;
-            setHint("");
-            unmuteMusic();
-          };
-        }
+        // ✅ keep music running (do NOT restart)
+        armUnmuteOnce("Tap anywhere for sound 🔊");
 
         const yes = ()=> celebrate();
         addAction("Yes 💖", yes);
@@ -823,6 +808,11 @@
 
     function celebrate(){
       clearActions();
+
+      // ✅ make sure it's unmuted as soon as they click YES (user gesture)
+      unmuteArmed = false;
+      setHint("");
+      unmuteMusic();
 
       show(result);
       fullScreenConfetti();
