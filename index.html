@@ -3,23 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffd6e7">
 <title>Will you be my Valentine?</title>
 
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
 <style>
-:root{
+:root {
   --bg1:#ffd6e7; --bg2:#ffeef6; --card:#ffffffcc;
   --yes:#ff3b7a; --yesHover:#ff1f68;
 }
+
 *{box-sizing:border-box}
 
 body{
   margin:0; min-height:100svh; display:grid; place-items:center;
   background:radial-gradient(circle at top,var(--bg2),var(--bg1));
-  font-family:system-ui,sans-serif; overflow:hidden;
-  padding:calc(16px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));
+  font-family:system-ui,sans-serif; overflow:hidden; padding:16px;
 }
 
 #confettiCanvas,#hearts{
@@ -43,35 +42,48 @@ body{
   background:var(--card); backdrop-filter:blur(10px);
   border-radius:22px; text-align:center;
   box-shadow:0 18px 60px rgba(0,0,0,.15);
+  position:relative;
+  z-index:2;
 }
 
 h1{font-size:clamp(26px,4vw,44px); margin:12px 0 18px}
 
 .button-zone{
   position:relative; width:min(520px,92%);
-  height:160px; margin:0 auto; touch-action:none;
+  height:150px; margin:0 auto; touch-action:none;
 }
 
 button{
-  position:absolute; top:50%;
+  position:absolute; top:50%; transform:translateY(-50%);
   padding:16px 24px; font-size:18px; font-weight:800;
   border-radius:999px; border:none; cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.14);
-  transition:opacity .25s ease, filter .25s ease;
+  transition:opacity .4s ease, filter .4s ease;
 }
 
-#yesBtn{left:18%; transform:translateY(-50%); background:var(--yes); color:#fff}
+#yesBtn{
+  left:18%;
+  background:var(--yes); color:#fff;
+  transform:translateY(-50%) scale(1);
+  z-index:5;
+}
 #yesBtn:hover{background:var(--yesHover)}
 
-#noBtn{left:62%; top:50%; transform:translateY(-50%); background:#e5e7eb}
+#noBtn{
+  left:62%;
+  background:#e5e7eb;
+  top:50%;
+  transform:translateY(-50%);
+}
 
 .hint{margin-top:10px; font-size:13px; opacity:.7}
+
 .result{display:none; margin-top:18px; animation:pop .35s ease}
 .result h2{font-size:clamp(30px,4.5vw,46px); margin:10px 0}
-.loveText{font-size:22px; font-weight:700; color:#ff1f68; margin-top:8px}
 
-.smallNote{
-  margin-top:10px; font-size:13px; opacity:.75;
+.loveText{
+  font-size:22px; font-weight:700; color:#ff1f68;
+  margin-top:8px;
 }
 
 @keyframes pop{
@@ -82,13 +94,12 @@ button{
 </head>
 
 <body>
+
 <canvas id="confettiCanvas"></canvas>
 <div id="hearts"></div>
 
-<!-- ✅ Echte audio (werkt op gsm na klik) -->
-<audio id="bgMusic" preload="auto" playsinline>
-  <source src="music.mp3" type="audio/mpeg">
-</audio>
+<!-- YouTube muziek (kan op gsm nog steeds blokkeren, maar je vroeg “zoals ervoor”) -->
+<iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
 
 <main class="card">
   <h1>Hey Ofelia… will you be my Valentine? 💖</h1>
@@ -103,7 +114,6 @@ button{
   <section class="result" id="result">
     <h2>YAY! 🎉</h2>
     <div class="loveText">I knew you'd say yes ❤️</div>
-    <div class="smallNote" id="audioNote" style="display:none;">Tap once more to enable sound 🔊</div>
   </section>
 </main>
 
@@ -114,18 +124,87 @@ const noBtn=document.getElementById("noBtn");
 const result=document.getElementById("result");
 const hint=document.getElementById("hint");
 const hearts=document.getElementById("hearts");
-const audio=document.getElementById("bgMusic");
-const audioNote=document.getElementById("audioNote");
 
 const confettiCanvas=document.getElementById("confettiCanvas");
-let confettiInstance=null;
-if (window.confetti) {
-  confettiInstance=confetti.create(confettiCanvas,{resize:true,useWorker:true});
-}
+const confettiInstance=window.confetti
+  ? confetti.create(confettiCanvas,{resize:true,useWorker:true})
+  : null;
+
 function fullScreenConfetti(){
   if(!confettiInstance) return;
   confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
 }
+
+function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
+
+// ✅ YES groeit tot (bijna) full page
+let yesScale=1;
+const YES_MAX_SCALE = 12; // groter = meer “cover”
+const YES_GROW_STEP = 0.18; // groei per “dodge”
+
+function growYes(){
+  yesScale=Math.min(YES_MAX_SCALE, yesScale + YES_GROW_STEP);
+  yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
+
+  // Als YES super groot wordt: zorg dat hij bovenaan blijft
+  yesBtn.style.zIndex = 50;
+}
+
+// ✅ NO verdwijnt pas na “lange tijd”
+// Na 25s zonder YES te klikken (maar wel spelen) begint NO te verdwijnen,
+// en na 35s is hij helemaal weg.
+const NO_FADE_START_MS = 25000;
+const NO_GONE_MS = 35000;
+
+let startTime = Date.now();
+let noHidden = false;
+
+function updateNoTimer(){
+  if(noHidden) return;
+  const elapsed = Date.now() - startTime;
+
+  if(elapsed < NO_FADE_START_MS) return;
+
+  const t = clamp((elapsed - NO_FADE_START_MS) / (NO_GONE_MS - NO_FADE_START_MS), 0, 1);
+  noBtn.style.opacity = String(1 - t);
+  noBtn.style.filter = `blur(${t*2}px)`;
+
+  if(t >= 1){
+    noBtn.style.display = "none";
+    noHidden = true;
+    hint.textContent = "Okayyy… only YES left 😇";
+  }
+}
+setInterval(updateNoTimer, 200);
+
+// ✅ NO blijft weg springen + YES groeit telkens
+function moveNo(px,py){
+  if(noHidden) return;
+
+  const z=zone.getBoundingClientRect();
+  const b=noBtn.getBoundingClientRect();
+
+  let dx=(b.left+b.width/2)-px;
+  let dy=(b.top+b.height/2)-py;
+  let mag=Math.hypot(dx,dy)||1;
+  dx/=mag; dy/=mag;
+
+  let newLeft=(b.left-z.left)+dx*140;
+  let newTop =(b.top -z.top )+dy*140;
+
+  noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
+  noBtn.style.top =clamp(newTop ,0,z.height-b.height)+"px";
+  noBtn.style.transform="translateY(-50%)";
+
+  growYes();
+}
+
+zone.addEventListener("pointermove",e=>{
+  if(noHidden) return;
+  const b=noBtn.getBoundingClientRect();
+  const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
+  if(d<140) moveNo(e.clientX,e.clientY);
+});
 
 function createHeart(){
   const span=document.createElement("span");
@@ -136,76 +215,9 @@ function createHeart(){
   setTimeout(()=>span.remove(),8000);
 }
 
-function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
-
-// ✅ YES groeit, NO verdwijnt na genoeg "pogingen"
-let yesScale=1;
-let noDodges=0;
-const NO_DISAPPEAR_AFTER = 8; // pas aan als je sneller/langzamer wil
-
-function updateNoVisibility(){
-  const remaining = Math.max(0, NO_DISAPPEAR_AFTER - noDodges);
-  const t = remaining / NO_DISAPPEAR_AFTER; // 1 -> 0
-  noBtn.style.opacity = (0.15 + 0.85*t).toFixed(2); // nooit meteen 0
-  noBtn.style.filter = `blur(${(1-t)*2}px)`;
-
-  if(noDodges >= NO_DISAPPEAR_AFTER){
-    noBtn.style.display = "none";
-    hint.textContent = "Okayyy… only YES left 😇";
-  }
-}
-
-function growYes(){
-  yesScale = Math.min(3.0, yesScale + 0.12);
-  yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
-}
-
-function moveNo(px,py){
-  const z=zone.getBoundingClientRect();
-  const b=noBtn.getBoundingClientRect();
-
-  let dx=(b.left+b.width/2)-px;
-  let dy=(b.top+b.height/2)-py;
-  let mag=Math.hypot(dx,dy)||1;
-  dx/=mag; dy/=mag;
-
-  let newLeft=(b.left-z.left)+dx*150;
-  let newTop =(b.top -z.top )+dy*150;
-
-  noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
-  noBtn.style.top =clamp(newTop ,0,z.height-b.height)+"px";
-  noBtn.style.transform="translateY(-50%)";
-
-  noDodges++;
-  growYes();
-  updateNoVisibility();
-}
-
-zone.addEventListener("pointermove",e=>{
-  if (noBtn.style.display === "none") return;
-  const b=noBtn.getBoundingClientRect();
-  const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
-  if(d<150) moveNo(e.clientX,e.clientY);
-});
-
-// Extra: als iemand toch op NO klikt (soms op mobiel), doe hetzelfde
-noBtn.addEventListener("click",(e)=>{
-  e.preventDefault();
-  const z=zone.getBoundingClientRect();
-  moveNo(z.left + Math.random()*z.width, z.top + Math.random()*z.height);
-});
-
-// ✅ YES click: muziek autoplay + feest
-yesBtn.addEventListener("click", async ()=>{
-  // muziek
-  audio.loop = true;
-  audio.volume = 0.9;
-  try{
-    await audio.play(); // op gsm werkt dit omdat het uit een click komt
-  }catch(err){
-    // als de browser toch lastig doet: vraag 1 extra tap
-    audioNote.style.display="block";
-  }
+yesBtn.addEventListener("click",()=>{
+  document.getElementById("ytMusic").src =
+    "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
 
   zone.style.display="none";
   hint.style.display="none";
@@ -214,16 +226,8 @@ yesBtn.addEventListener("click", async ()=>{
   fullScreenConfetti();
   setInterval(createHeart,300);
 });
-
-// Als autoplay faalde: tweede tap ergens op de pagina start het alsnog
-document.addEventListener("pointerdown", async ()=>{
-  if (audioNote.style.display === "block") {
-    try{
-      await audio.play();
-      audioNote.style.display="none";
-    }catch(e){}
-  }
-}, {once:false});
 </script>
+
 </body>
 </html>
+
