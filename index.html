@@ -42,8 +42,6 @@ body{
   background:var(--card); backdrop-filter:blur(10px);
   border-radius:22px; text-align:center;
   box-shadow:0 18px 60px rgba(0,0,0,.15);
-  position:relative;
-  z-index:2;
 }
 
 h1{font-size:clamp(26px,4vw,44px); margin:12px 0 18px}
@@ -58,23 +56,11 @@ button{
   padding:16px 24px; font-size:18px; font-weight:800;
   border-radius:999px; border:none; cursor:pointer;
   box-shadow:0 10px 24px rgba(0,0,0,.14);
-  transition:opacity .4s ease, filter .4s ease;
 }
 
-#yesBtn{
-  left:18%;
-  background:var(--yes); color:#fff;
-  transform:translateY(-50%) scale(1);
-  z-index:5;
-}
+#yesBtn{left:18%; background:var(--yes); color:#fff}
 #yesBtn:hover{background:var(--yesHover)}
-
-#noBtn{
-  left:62%;
-  background:#e5e7eb;
-  top:50%;
-  transform:translateY(-50%);
-}
+#noBtn{left:62%; background:#e5e7eb}
 
 .hint{margin-top:10px; font-size:13px; opacity:.7}
 
@@ -90,34 +76,6 @@ button{
   from{transform:scale(.96); opacity:0}
   to{transform:scale(1); opacity:1}
 }
-
-/* ✅ Fullscreen YES overlay mode */
-.yes-fullscreen{
-  position:fixed !important;
-  inset:0 !important;
-  left:0 !important;
-  top:0 !important;
-  width:100vw !important;
-  height:100vh !important;
-  transform:none !important;
-  border-radius:0 !important;
-  display:flex !important;
-  align-items:center !important;
-  justify-content:center !important;
-  font-size:clamp(26px,7vw,64px) !important;
-  z-index:9999 !important;
-  box-shadow:none !important;
-}
-
-/* zodat YES mooi “pulse” voelt eens fullscreen */
-@keyframes softPulse{
-  0%{transform:scale(1)}
-  50%{transform:scale(1.03)}
-  100%{transform:scale(1)}
-}
-.yes-fullscreen.pulse{
-  animation:softPulse 1.2s ease-in-out infinite;
-}
 </style>
 </head>
 
@@ -126,23 +84,25 @@ button{
 <canvas id="confettiCanvas"></canvas>
 <div id="hearts"></div>
 
-<!-- YouTube muziek (kan op gsm blokkeren, maar je vroeg “zoals ervoor”) -->
+<!-- YouTube muziek -->
 <iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
 
 <main class="card">
-  <h1>Hey Ofelia… will you be my Valentine? 💖</h1>
 
-  <section class="button-zone" id="zone">
-    <button id="yesBtn">Yes</button>
-    <button id="noBtn">No</button>
-  </section>
+<h1>Hey Ofelia… will you be my Valentine? 💖</h1>
 
-  <div class="hint" id="hint">“No” seems a bit shy 😈</div>
+<section class="button-zone" id="zone">
+  <button id="yesBtn">Yes</button>
+  <button id="noBtn">No</button>
+</section>
 
-  <section class="result" id="result">
-    <h2>YAY! 🎉</h2>
-    <div class="loveText">I knew you'd say yes ❤️</div>
-  </section>
+<div class="hint" id="hint">“No” seems a bit shy 😈</div>
+
+<section class="result" id="result">
+  <h2>YAY! 🎉</h2>
+  <div class="loveText">I knew you'd say yes ❤️</div>
+</section>
+
 </main>
 
 <script>
@@ -154,16 +114,40 @@ const hint=document.getElementById("hint");
 const hearts=document.getElementById("hearts");
 
 const confettiCanvas=document.getElementById("confettiCanvas");
-const confettiInstance=window.confetti
-  ? confetti.create(confettiCanvas,{resize:true,useWorker:true})
-  : null;
+const confettiInstance=confetti.create(confettiCanvas,{resize:true,useWorker:true});
 
 function fullScreenConfetti(){
-  if(!confettiInstance) return;
   confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
 }
 
+let yesScale=1;
+function growYes(){
+  yesScale=Math.min(2.2,yesScale+.1);
+  yesBtn.style.transform=`translateY(-50%) scale(${yesScale})`;
+}
+
 function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
+
+function moveNo(px,py){
+  const z=zone.getBoundingClientRect();
+  const b=noBtn.getBoundingClientRect();
+  let dx=(b.left+b.width/2)-px;
+  let dy=(b.top+b.height/2)-py;
+  let mag=Math.hypot(dx,dy)||1;
+  dx/=mag; dy/=mag;
+  let newLeft=(b.left-z.left)+dx*140;
+  let newTop=(b.top-z.top)+dy*140;
+  noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
+  noBtn.style.top=clamp(newTop,0,z.height-b.height)+"px";
+  noBtn.style.transform="none";
+  growYes();
+}
+
+zone.addEventListener("pointermove",e=>{
+  const b=noBtn.getBoundingClientRect();
+  const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
+  if(d<140) moveNo(e.clientX,e.clientY);
+});
 
 function createHeart(){
   const span=document.createElement("span");
@@ -174,118 +158,15 @@ function createHeart(){
   setTimeout(()=>span.remove(),8000);
 }
 
-/* ✅ YES groeit tot hij fullscreen wordt */
-let yesScale=1;
-const YES_GROW_STEP = 0.22;   // groei per dodge
-const YES_FULLSCREEN_AT = 4.2; // vanaf deze scale: fullscreen
-let yesIsFullscreen=false;
+yesBtn.addEventListener("click",()=>{
+  document.getElementById("ytMusic").src="https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
 
-function makeYesFullscreen(){
-  if(yesIsFullscreen) return;
-  yesIsFullscreen=true;
-
-  // zet button in fullscreen overlay
-  yesBtn.classList.add("yes-fullscreen","pulse");
-  yesBtn.textContent="YES 💖";
-
-  // No mag nog even bestaan, maar we zetten hem weg uit de flow
-  // (hij verdwijnt sowieso via timer)
-  noBtn.style.zIndex = 1;
-}
-
-function growYes(){
-  if(yesIsFullscreen) return;
-
-  yesScale = yesScale + YES_GROW_STEP;
-  yesBtn.style.transform = `translateY(-50%) scale(${yesScale})`;
-  yesBtn.style.zIndex = 50;
-
-  if(yesScale >= YES_FULLSCREEN_AT){
-    makeYesFullscreen();
-  }
-}
-
-/* ✅ NO verdwijnt traag (niet te snel) */
-const NO_FADE_START_MS = 25000; // start fade na 25s
-const NO_GONE_MS = 35000;       // volledig weg na 35s
-let startTime = Date.now();
-let noHidden = false;
-
-function updateNoTimer(){
-  if(noHidden) return;
-  const elapsed = Date.now() - startTime;
-
-  if(elapsed < NO_FADE_START_MS) return;
-
-  const t = clamp((elapsed - NO_FADE_START_MS) / (NO_GONE_MS - NO_FADE_START_MS), 0, 1);
-  noBtn.style.opacity = String(1 - t);
-  noBtn.style.filter = `blur(${t*2}px)`;
-
-  if(t >= 1){
-    noBtn.style.display = "none";
-    noHidden = true;
-    hint.textContent = "Okayyy… only YES left 😇";
-  }
-}
-setInterval(updateNoTimer, 200);
-
-/* ✅ NO springt weg + YES groeit */
-function moveNo(px,py){
-  if(noHidden) return;
-
-  const z=zone.getBoundingClientRect();
-  const b=noBtn.getBoundingClientRect();
-
-  let dx=(b.left+b.width/2)-px;
-  let dy=(b.top+b.height/2)-py;
-  let mag=Math.hypot(dx,dy)||1;
-  dx/=mag; dy/=mag;
-
-  let newLeft=(b.left-z.left)+dx*140;
-  let newTop =(b.top -z.top )+dy*140;
-
-  noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
-  noBtn.style.top =clamp(newTop ,0,z.height-b.height)+"px";
-  noBtn.style.transform="translateY(-50%)";
-
-  growYes();
-}
-
-zone.addEventListener("pointermove",e=>{
-  if(noHidden) return;
-  const b=noBtn.getBoundingClientRect();
-  const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
-  if(d<140) moveNo(e.clientX,e.clientY);
-});
-
-/* ✅ Als fullscreen YES actief is, maakt pointermove NO “irrelevant” */
-document.addEventListener("pointermove", ()=>{
-  if(yesIsFullscreen) {
-    // optioneel: laat NO sneller verdwijnen als YES fullscreen is
-    // (comment weg als je dit wil)
-    // startTime = Date.now() - (NO_FADE_START_MS + 2000);
-  }
-});
-
-/* ✅ YES click: muziek + confetti + hearts + result */
-function celebrate(){
   zone.style.display="none";
   hint.style.display="none";
   result.style.display="block";
+
   fullScreenConfetti();
   setInterval(createHeart,300);
-}
-
-yesBtn.addEventListener("click",()=>{
-  document.getElementById("ytMusic").src =
-    "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
-
-  // Als YES fullscreen is: klik voelt “mega”
-  if(yesIsFullscreen){
-    yesBtn.classList.remove("pulse");
-    yesBtn.textContent="YAAAY 🎉";
-  }
-  celebrate();
 });
 </script>
 
