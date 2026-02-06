@@ -9,12 +9,9 @@
 
   <style>
     :root{
-      /* ✅ Pastel geel achtergrond */
       --bg1:#fff4c2;
       --bg2:#fff9dd;
-
       --card:#ffffffcc;
-
       --yes:#ff3b7a; --yesHover:#ff1f68;
       --ink:#111827;
     }
@@ -56,7 +53,6 @@
       position:relative;
     }
 
-    /* ✅ Wiggle animatie */
     @keyframes wiggle {
       0%   { transform:translateX(0); }
       15%  { transform:translateX(-10px) rotate(-1deg); }
@@ -82,7 +78,7 @@
       max-width:56ch;
       line-height:1.35;
       min-height:22px;
-      white-space:pre-line; /* ✅ laat \n werken */
+      white-space:pre-line;
     }
 
     .hint{
@@ -120,7 +116,6 @@
       font-size:18px;
     }
 
-    /* ✅ YES: gele glow */
     #btnA{
       background:var(--yes);
       color:#fff;
@@ -130,7 +125,6 @@
     }
     #btnA:hover{ background:var(--yesHover); }
 
-    /* ✅ NO: pastel roze glow */
     #btnB{
       background:#e5e7eb;
       color:#111;
@@ -195,7 +189,13 @@
   <canvas id="confettiCanvas"></canvas>
   <div id="hearts"></div>
 
-  <iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
+  <iframe id="ytMusic"
+    width="0" height="0"
+    src=""
+    frameborder="0"
+    allow="autoplay; encrypted-media; picture-in-picture"
+    referrerpolicy="origin"
+  ></iframe>
 
   <div class="wrap">
     <main class="card" id="card">
@@ -307,8 +307,11 @@
       btnA.style.display = "block";
       btnB.style.display = "block";
 
-      // ✅ stop music when leaving a screen
-      ytMusic.src = "";
+      // do not hard-stop music here anymore; we control it per-screen
+      // ytMusic.src = "";
+
+      unmuteArmed = false;
+      card.onpointerdown = null;
     }
 
     function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
@@ -376,7 +379,6 @@
 
     // STATE
     let screen = 0;
-
     let r1YesClicks = 0;
     let r2YesClicks = 0;
 
@@ -392,12 +394,11 @@
     let obeyTimer = null;
     let obeyActive = false;
 
-    // ✅ Easter egg: 7x op de titel klikken (alleen vroeg)
+    // ✅ Easter egg: 7x op titel
     titleEl.style.cursor = "pointer";
     titleEl.addEventListener("click", ()=>{
       if(!secretTitleArmed) return;
       if(screen > 10) return;
-
       secretTitleClicks++;
       if(secretTitleClicks === 7){
         setToast("Okay wow… you’re curious. That’s kinda attractive 😳", 1800);
@@ -406,7 +407,6 @@
       }
     });
 
-    // Pointer behaviour (only where needed)
     zone.addEventListener("pointermove", (e)=>{
       const px=e.clientX, py=e.clientY;
       if(screen === 1){
@@ -429,20 +429,26 @@
         "Couldn’t stay away, huh?",
         "Okay… again? I like that 😌"
       ];
-
       const pool = isReturn ? ret : first;
       titleEl.textContent = pool[Math.floor(Math.random()*pool.length)];
     }
 
-    // ✅ music helpers
+    // ✅ music helpers (muted autoplay then unmute on first tap)
     const YT_ID = "5sMKX22BHeE";
+    let unmuteArmed = false;
+
     function startMusicSoft(){
-      // Muted autoplay is most reliable across browsers.
-      ytMusic.src = `https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&playsinline=1`;
+      ytMusic.src =
+        `https://www.youtube.com/embed/${YT_ID}` +
+        `?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
     }
-    function startMusicLoud(){
-      // May be blocked on some devices if user hasn't interacted with audio yet.
-      ytMusic.src = `https://www.youtube.com/embed/${YT_ID}?autoplay=1&mute=0&loop=1&playlist=${YT_ID}&playsinline=1`;
+    function unmuteMusic(){
+      ytMusic.src =
+        `https://www.youtube.com/embed/${YT_ID}` +
+        `?autoplay=1&mute=0&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
+    }
+    function stopMusic(){
+      ytMusic.src = "";
     }
 
     function go(n){
@@ -456,13 +462,13 @@
 
       // ---------------- ROUND 0: INTRO ----------------
       if(screen === 0){
-        setIntroTitle();
+        stopMusic(); // ✅ stop when restarting the whole game
 
+        setIntroTitle();
         btnA.textContent = "Yes";
         btnB.textContent = "No";
         setHint("");
 
-        // re-arm title easter egg on fresh start
         secretTitleArmed = true;
         secretTitleClicks = 0;
 
@@ -474,7 +480,7 @@
         return;
       }
 
-      // ---------------- ROUND 1: "Try clicking yes." (YES rechts, NO links) ----------------
+      // ---------------- ROUND 1 ----------------
       if(screen === 1){
         titleEl.textContent = "Try clicking yes.";
         btnA.textContent = "Yes";
@@ -483,7 +489,6 @@
         r1YesClicks = 0;
         setHint("");
 
-        // ✅ swap positions: YES rechts, NO links
         requestAnimationFrame(()=> placeButtons(62, 18));
 
         btnA.onclick = ()=>{
@@ -498,7 +503,6 @@
         return;
       }
 
-      // After Round 1
       if(screen === 2){
         titleEl.textContent = "Okay… that was too easy 😅";
         hide(zone);
@@ -506,7 +510,7 @@
         return;
       }
 
-      // ---------------- ROUND 2: "Okay, try this." (ONLY YES, 5 clicks) ----------------
+      // ---------------- ROUND 2 ----------------
       if(screen === 3){
         titleEl.textContent = "Okay, try this.";
         textEl.textContent = "";
@@ -518,11 +522,9 @@
 
         btnA.onclick = ()=>{
           r2YesClicks++;
-
           if(r2YesClicks === 2) setHint("Ah, keep going.");
           if(r2YesClicks === 3) setHint("You’re almost there.");
           if(r2YesClicks === 4) setHint("You’re doing it, honey.");
-
           if(r2YesClicks < 5){
             moveYesRandom();
             return;
@@ -534,7 +536,6 @@
         return;
       }
 
-      // Round 2 question screen
       if(screen === 4){
         titleEl.textContent = "Be honest… what are you thinking right now?";
         textEl.textContent = "";
@@ -546,7 +547,6 @@
         return;
       }
 
-      // ---------------- Transitions to ROUND 3 ----------------
       if(screen === 5){
         titleEl.textContent = "Okay…";
         textEl.textContent = "These buttons clearly can’t be trusted.";
@@ -563,7 +563,6 @@
         return;
       }
 
-      // ---------------- Hidden "one" slide ----------------
       if(screen === 7){
         titleEl.innerHTML = `Choose <span class="oneLink" id="oneLink">one</span>.`;
         textEl.textContent = "";
@@ -595,7 +594,6 @@
         return;
       }
 
-      // ---------------- ROUND 3: Choose wisely (Think / Feel) ----------------
       if(screen === 8){
         titleEl.textContent = "Choose wisely.";
         textEl.textContent = "No pressure.";
@@ -603,7 +601,6 @@
         btnB.textContent = "Feel";
         setHint("");
 
-        // after this point, stop title-7click egg
         secretTitleArmed = false;
 
         btnA.onclick = ()=> { r3Mode="think"; go(9); };
@@ -611,7 +608,6 @@
         return;
       }
 
-      // THINK path
       if(screen === 9 && r3Mode==="think"){
         titleEl.textContent = "Thinking a little?";
         hide(zone);
@@ -642,7 +638,6 @@
         if(lastThoughtPick === "fun") extra = "By the way… you said this was kinda fun. I noticed 😌";
         if(lastThoughtPick === "smiling") extra = "Also… you mentioned smiling. I noticed that too 😌";
         if(lastThoughtPick === "confused") extra = "And hey… even if you were confused— you still stayed. I noticed 😌";
-
         titleEl.textContent = "I was kind of thinking about you too.";
         textEl.textContent = extra;
         hide(zone);
@@ -650,7 +645,6 @@
         return;
       }
 
-      // FEEL path
       if(screen === 13 && r3Mode==="feel"){
         titleEl.textContent = "Feeling person, huh.";
         textEl.textContent = "I had a feeling you’d pick this one.";
@@ -671,7 +665,6 @@
         if(lastThoughtPick === "fun") extra = "And earlier… you said this was kinda fun. I noticed 😌";
         if(lastThoughtPick === "smiling") extra = "And earlier… you said you were smiling. I noticed 😌";
         if(lastThoughtPick === "confused") extra = "And earlier… you said you were confused. It was cute 😌";
-
         titleEl.textContent = "Makes sense.";
         textEl.textContent =
           "You’re pretty much describing me. And don’t worry… I think that about you too."
@@ -681,7 +674,6 @@
         return;
       }
 
-      // ---------------- ROUND 4 ----------------
       if(screen === 16){
         titleEl.textContent = "You know… this would’ve been way easier if I just asked.";
         textEl.textContent = "But where’s the fun in that?";
@@ -695,7 +687,6 @@
         return;
       }
 
-      // ---------------- ROUND 5 ----------------
       if(screen === 17){
         titleEl.textContent = "I don’t usually do things like this.";
         textEl.textContent = "But I wanted this to feel a little different.";
@@ -710,11 +701,10 @@
         titleEl.textContent = "Yeah… I’m glad you do.";
         textEl.textContent = "";
         hide(zone);
-        addAction("Okay, show me more 😄", ()=> go(18.5)); // ✅ extra easter screen
+        addAction("Okay, show me more 😄", ()=> go(18.5));
         return;
       }
 
-      // ✅ Easter egg screen: "Don't click anything"
       if(screen === 18.5){
         titleEl.textContent = "One tiny challenge.";
         textEl.textContent = "Don’t click anything for 5 seconds.";
@@ -747,7 +737,6 @@
         return;
       }
 
-      // ---------------- ROUND 6 pick (zonder foto) ----------------
       if(screen === 19){
         titleEl.textContent = "Okay… one last thing.";
         textEl.textContent = "Pick any button.";
@@ -764,9 +753,13 @@
         return;
       }
 
-      // ---------------- ROUND 7 slower build-up (2.5s) + honest line ----------------
+      // ✅ Build-up screen: start music SOFT one slide earlier (HERE)
       if(screen === 21){
         hide(zone);
+
+        // ✅ start muted music already here for rhythm
+        // (it will become audible on first tap later)
+        startMusicSoft();
 
         titleEl.textContent = "I still have a lot of things I want to ask you someday…";
         textEl.textContent = "";
@@ -796,16 +789,27 @@
         return;
       }
 
-      // ---------------- Final question + choices + ✅ start music softly here ----------------
       if(screen === 22){
         hide(zone);
         titleEl.textContent = "Will you be my Valentine? 💖";
         textEl.textContent = "";
         clearActions();
 
-        // ✅ start soft music as soon as this slide appears
-        // (muted autoplay is most reliable; then we switch to unmuted on "celebrate")
-        startMusicSoft();
+        // ✅ do not restart the video here; keep continuity from screen 21
+        // startMusicSoft();
+
+        // ✅ unmute on first user tap (anywhere on card)
+        if(!unmuteArmed){
+          unmuteArmed = true;
+          setHint("Tap anywhere for sound 🔊");
+
+          card.onpointerdown = ()=>{
+            if(!unmuteArmed) return;
+            unmuteArmed = false;
+            setHint("");
+            unmuteMusic();
+          };
+        }
 
         const yes = ()=> celebrate();
         addAction("Yes 💖", yes);
@@ -820,22 +824,17 @@
     function celebrate(){
       clearActions();
 
-      // ✅ switch to unmuted music for the celebration
-      startMusicLoud();
-
       show(result);
       fullScreenConfetti();
 
       if(heartTimer) clearInterval(heartTimer);
       heartTimer = setInterval(createHeart, 300);
 
-      // stop hearts after 25s
       setTimeout(()=>{
         if(heartTimer) clearInterval(heartTimer);
         heartTimer = null;
       }, 25000);
 
-      // ✅ Easter egg: "still here?" after some idle time
       setTimeout(()=>{
         if(screen !== 22) return;
         titleEl.textContent = "Hey…";
@@ -846,18 +845,15 @@
         }, 3000);
       }, 12000);
 
-      // ✅ Restart button after 15 seconds
       setTimeout(()=>{
         addAction("Restart 🔁", ()=>{
-          safeSet("playedBefore", "yes"); // ✅ round two twist title
+          safeSet("playedBefore", "yes");
           go(0);
         });
       }, 15000);
     }
 
-    // Start
     go(0);
   </script>
 </body>
 </html>
-
