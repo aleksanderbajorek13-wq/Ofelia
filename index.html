@@ -23,8 +23,6 @@
       padding:16px;
       color:var(--ink);
     }
-
-    /* card a tiny bit higher */
     .wrap{ width:100%; display:flex; justify-content:center; transform:translateY(-18px); }
 
     #confettiCanvas,#hearts{
@@ -64,6 +62,7 @@
       margin:0 auto 14px;
       max-width:56ch;
       line-height:1.35;
+      min-height:22px;
     }
 
     .hint{
@@ -73,7 +72,6 @@
       min-height:18px;
     }
 
-    /* zone for moving buttons */
     .button-zone{
       position:relative;
       width:min(540px,96%);
@@ -89,7 +87,6 @@
       user-select:none;
     }
 
-    /* main two buttons */
     .btn-main{
       position:absolute;
       padding:16px 24px;
@@ -99,7 +96,6 @@
     #btnA:hover{ background:var(--yesHover); }
     #btnB{ background:#e5e7eb; color:#111; }
 
-    /* centered actions/options */
     .actions{
       display:flex;
       gap:10px;
@@ -123,6 +119,7 @@
       font-weight:950;
       opacity:.95;
       animation:pop .35s ease;
+      min-height:40px;
     }
 
     #round6Image{
@@ -154,7 +151,6 @@
   <canvas id="confettiCanvas"></canvas>
   <div id="hearts"></div>
 
-  <!-- music -->
   <iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
 
   <div class="wrap">
@@ -168,9 +164,8 @@
       </div>
 
       <div class="actions" id="actions"></div>
-      <div class="toast" id="toast">NO 😢</div>
+      <div class="toast" id="toast"></div>
 
-      <!-- Round 6 image -->
       <img id="round6Image" src="round6.gif" alt="round 6 moment" />
 
       <div class="hint" id="hint"></div>
@@ -219,7 +214,7 @@
     function show(el){ el.style.display = "block"; }
     function hide(el){ el.style.display = "none"; }
     function setHint(html){ hint.innerHTML = html || ""; }
-    function setToast(text, ms=1100){
+    function setToast(text, ms=1200){
       toast.textContent = text;
       show(toast);
       if(ms>0) setTimeout(()=>hide(toast), ms);
@@ -238,13 +233,11 @@
       hide(result);
       clearActions();
       setHint("");
-      // show zone by default; screens can hide it
       show(zone);
       btnA.onclick = null;
       btnB.onclick = null;
     }
 
-    // moving buttons helpers
     function placeButtons(aLeftPct=18, bLeftPct=62){
       btnA.style.left = aLeftPct + "%";
       btnA.style.top = "50%";
@@ -256,14 +249,12 @@
     placeButtons();
 
     function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
-
     function near(btn, px, py, dist){
       const r = btn.getBoundingClientRect();
       const cx = r.left + r.width/2;
       const cy = r.top + r.height/2;
       return Math.hypot(cx-px, cy-py) < dist;
     }
-
     function dodge(btn, px, py, strength){
       const z = zone.getBoundingClientRect();
       const b = btn.getBoundingClientRect();
@@ -283,21 +274,19 @@
       btn.style.transform = "translateY(-50%)";
     }
 
-    // state
+    // --- state: we count screens (0..many), rounds are implied ---
     let screen = 0;
-    let r2Picked = false;
     let r3Mode = null; // "think" | "feel"
+    let r3ThinkPick = null; // "A lot" | "Everything"
 
-    // pointer behavior depends on screen
     zone.addEventListener("pointermove", (e)=>{
       const px=e.clientX, py=e.clientY;
 
-      // Screen 1 (Round 1): YES dodges
+      // Round 1 game screen: YES dodges
       if(screen === 1){
         if(near(btnA, px, py, 150)) dodge(btnA, px, py, 140);
       }
-
-      // Screen 3 (Round 2 game): NO dodges
+      // Round 2 game screen: NO dodges
       if(screen === 3){
         if(near(btnB, px, py, 165)) dodge(btnB, px, py, 170);
       }
@@ -307,47 +296,44 @@
       screen = n;
       resetUI();
       placeButtons();
+      textEl.textContent = "";
 
-      // --- SCREEN 0: intro ---
+      // --- Screen 0 = ROUND 0 INTRO ---
       if(screen === 0){
         titleEl.textContent = "Do you want to play a game?";
-        textEl.textContent = "";
         btnA.textContent = "Yes";
         btnB.textContent = "No";
         setHint("");
 
-        btnA.onclick = ()=> go(1);
-        btnB.onclick = ()=> setToast("NO 😢", 900);
+        btnA.onclick = ()=> go(1); // to ROUND 1
+        btnB.onclick = ()=> setToast("NO 💃", 1100);
         return;
       }
 
-      // --- SCREEN 1: Round 1 (YES dodges, hint) ---
+      // --- Screen 1 = ROUND 1 GAME ---
       if(screen === 1){
         titleEl.textContent = "Do you want to play a game?";
-        textEl.textContent = "";
         btnA.textContent = "Yes";
         btnB.textContent = "No";
         setHint('Hint: Click <b>NO</b> for <b>YES</b> 👀');
 
         btnA.onclick = ()=> setToast("NO 😢", 900);
-        btnB.onclick = ()=> go(2); // direct to next screen
+        btnB.onclick = ()=> go(2);
         return;
       }
 
-      // --- SCREEN 2: Round 1 result screen ---
+      // --- Screen 2 = AFTER ROUND 1 ---
       if(screen === 2){
         titleEl.textContent = "Okay… that was too easy 😅";
-        textEl.textContent = "";
         hide(zone);
         addAction("Continue", ()=> go(3));
         return;
       }
 
-      // --- SCREEN 3: Round 2 game (NO dodges, click YES => NO screen) ---
+      // --- Screen 3 = ROUND 2 GAME (NO dodges) ---
       if(screen === 3){
-        r2Picked = false;
-        titleEl.textContent = "Try clicking YES.";
-        textEl.textContent = "";
+        titleEl.textContent = "Okay… try this.";
+        textEl.textContent = "Click YES.";
         btnA.textContent = "Yes";
         btnB.textContent = "No";
         setHint("");
@@ -357,154 +343,185 @@
         return;
       }
 
-      // --- SCREEN 4: Round 2 NO screen + question ---
+      // --- Screen 4 = ROUND 2 NO SCREEN + question ---
       if(screen === 4){
         titleEl.textContent = "NO 😢";
         textEl.textContent = "Be honest… what are you thinking right now?";
         hide(zone);
 
-        clearActions();
         addAction("I’m confused 😵‍💫", ()=> go(5));
         addAction("This is kinda fun 😏", ()=> go(5));
         addAction("Why am I smiling right now", ()=> go(5));
         return;
       }
 
-      // --- SCREEN 5: Round 3 intro (Choose wisely) ---
+      // --- Screen 5 = ROUND 3 transition (part 1) ---
       if(screen === 5){
+        titleEl.textContent = "Okay…";
+        textEl.textContent = "These buttons clearly can’t be trusted.";
+        hide(zone);
+        addAction("Next", ()=> go(6));
+        return;
+      }
+
+      // --- Screen 6 = ROUND 3 transition (part 2) ---
+      if(screen === 6){
+        titleEl.textContent = "So let’s try something else.";
+        textEl.textContent = "You’re not allowed to click yes or no.";
+        hide(zone);
+        addAction("Next", ()=> go(7));
+        return;
+      }
+
+      // --- Screen 7 = ROUND 3 choose wisely ---
+      if(screen === 7){
         titleEl.textContent = "Choose wisely.";
         textEl.textContent = "No pressure.";
         btnA.textContent = "Think";
         btnB.textContent = "Feel";
         setHint("");
 
-        btnA.onclick = ()=> { r3Mode="think"; go(6); };
-        btnB.onclick = ()=> { r3Mode="feel"; go(9); };
+        btnA.onclick = ()=> { r3Mode="think"; go(8); };
+        btnB.onclick = ()=> { r3Mode="feel"; go(12); };
         return;
       }
 
-      // --- THINK path screens 6-8 ---
-      if(screen === 6 && r3Mode==="think"){
-        titleEl.textContent = "Thinking a little?";
-        textEl.textContent = "";
-        hide(zone);
-        addAction("Next", ()=> go(7));
-        return;
-      }
-      if(screen === 7 && r3Mode==="think"){
-        titleEl.textContent = "What was on your mind just now?";
-        textEl.textContent = "";
-        hide(zone);
-        addAction("A lot", ()=> go(8));
-        addAction("Everything", ()=> go(8));
-        return;
-      }
+      // --- THINK path: 8-11 ---
       if(screen === 8 && r3Mode==="think"){
-        // we’ll read last click via a simple trick: keep text on button click
-        // easiest: we infer from previous screen by storing a temp value
-        // but for simplicity: show a single combined line
-        titleEl.textContent = "Makes sense.";
-        textEl.textContent = "I was kind of thinking about you too.";
+        titleEl.textContent = "Thinking a little?";
         hide(zone);
-        addAction("Tell me more 👀", ()=> go(12));
+        addAction("Next", ()=> go(9));
+        return;
+      }
+      if(screen === 9 && r3Mode==="think"){
+        titleEl.textContent = "What was on your mind just now?";
+        hide(zone);
+        addAction("A lot", ()=> { r3ThinkPick="A lot"; go(10); });
+        addAction("Everything", ()=> { r3ThinkPick="Everything"; go(10); });
+        return;
+      }
+      if(screen === 10 && r3Mode==="think"){
+        hide(zone);
+        if(r3ThinkPick === "A lot"){
+          titleEl.textContent = "Ah… so basically a lot about me.";
+          textEl.textContent = "";
+        } else {
+          titleEl.textContent = "Yeah… that sounds about right.";
+          textEl.textContent = "Including me.";
+        }
+        addAction("Next", ()=> go(11));
+        return;
+      }
+      if(screen === 11 && r3Mode==="think"){
+        titleEl.textContent = "I was kind of thinking about you too.";
+        hide(zone);
+        addAction("Tell me more 👀", ()=> go(16));
         return;
       }
 
-      // --- FEEL path screens 9-11 ---
-      if(screen === 9 && r3Mode==="feel"){
+      // --- FEEL path: 12-15 ---
+      if(screen === 12 && r3Mode==="feel"){
         titleEl.textContent = "Feeling person, huh.";
         textEl.textContent = "I had a feeling you’d pick this one.";
         hide(zone);
-        addAction("Next", ()=> go(10));
+        addAction("Next", ()=> go(13));
         return;
       }
-      if(screen === 10 && r3Mode==="feel"){
+      if(screen === 13 && r3Mode==="feel"){
         titleEl.textContent = "What were you feeling just now?";
-        textEl.textContent = "";
         hide(zone);
-        addAction("Happy", ()=> go(11));
-        addAction("Warm", ()=> go(11));
-        addAction("Excited", ()=> go(11));
+        addAction("Happy", ()=> go(14));
+        addAction("Warm", ()=> go(14));
+        addAction("Excited", ()=> go(14));
         return;
       }
-      if(screen === 11 && r3Mode==="feel"){
+      if(screen === 14 && r3Mode==="feel"){
         titleEl.textContent = "Makes sense.";
-        textEl.textContent = "You’re pretty much describing me. And don’t worry… I think that about you too.";
+        textEl.textContent = "You’re pretty much describing me.";
         hide(zone);
-        addAction("Okay, show me more 😄", ()=> go(12));
+        addAction("Next", ()=> go(15));
+        return;
+      }
+      if(screen === 15 && r3Mode==="feel"){
+        titleEl.textContent = "And don’t worry…";
+        textEl.textContent = "I think that about you too.";
+        hide(zone);
+        addAction("Okay, show me more 😄", ()=> go(16));
         return;
       }
 
-      // --- SCREEN 12: Round 4 flirty text + Fair enough ---
-      if(screen === 12){
+      // --- Screen 16 = ROUND 4 flirty (single button) ---
+      if(screen === 16){
         titleEl.textContent = "You know… this would’ve been way easier if I just asked.";
         textEl.textContent = "But where’s the fun in that?";
         hide(zone);
         addAction("Fair enough", ()=>{
-          // show “I know, right?” for ~3s then round 5
           titleEl.textContent = "I know, right?";
           textEl.textContent = "";
           clearActions();
-          setTimeout(()=> go(13), 3000);
+          setTimeout(()=> go(17), 3200);
         });
         return;
       }
 
-      // --- SCREEN 13: Round 5 gift moment ---
-      if(screen === 13){
+      // --- Screen 17 = ROUND 5 gift (choices) ---
+      if(screen === 17){
         titleEl.textContent = "I don’t usually do things like this.";
         textEl.textContent = "But I wanted this to feel a little different.";
         hide(zone);
 
-        addAction("That’s sweet 🥺", ()=> go(14));
-        addAction("I like this 😊", ()=> go(14));
+        addAction("That’s sweet 🥺", ()=> go(18));
+        addAction("I like this 😊", ()=> go(18));
         return;
       }
 
-      // --- SCREEN 14: after round5 choice ---
-      if(screen === 14){
+      // --- Screen 18 = after round 5 ---
+      if(screen === 18){
         titleEl.textContent = "Yeah… I’m glad you do.";
         textEl.textContent = "";
         hide(zone);
-        addAction("Okay, show me more 😄", ()=> go(15));
+        addAction("Okay, show me more 😄", ()=> go(19));
         return;
       }
 
-      // --- SCREEN 15: Round 6 pick buttons ---
-      if(screen === 15){
+      // --- Screen 19 = ROUND 6 pick ---
+      if(screen === 19){
         titleEl.textContent = "Okay… one last thing.";
         textEl.textContent = "Pick any button.";
         show(zone);
+
         btnA.textContent = "This one";
         btnB.textContent = "That one";
         placeButtons(22, 58);
 
-        const pick = ()=> go(16);
+        const pick = ()=> go(20);
         btnA.onclick = pick;
         btnB.onclick = pick;
         return;
       }
 
-      // --- SCREEN 16: Round 6 image + slow text ---
-      if(screen === 16){
-        titleEl.textContent = "Interesting.";
-        textEl.textContent = "";
+      // --- Screen 20 = ROUND 6 image + slow text in parts ---
+      if(screen === 20){
         hide(zone);
         show(round6Image);
+        titleEl.textContent = "Interesting.";
+        textEl.textContent = "";
 
         clearActions();
-        setTimeout(()=> { textEl.textContent = "That actually says more than you think."; }, 1600);
-        setTimeout(()=> { textEl.textContent = "And that’s kind of why I did all of this."; }, 3400);
-        setTimeout(()=> { go(17); }, 5200);
+        setTimeout(()=> { titleEl.textContent = "That actually says more than you think."; }, 1800);
+        setTimeout(()=> { titleEl.textContent = "And that’s kind of why I did all of this."; }, 3800);
+        setTimeout(()=> { go(21); }, 6200);
         return;
       }
 
-      // --- SCREEN 17: Round 7 build-up ---
-      if(screen === 17){
+      // --- Screen 21 = ROUND 7 build-up (SLOWER) ---
+      if(screen === 21){
         hide(zone);
         hide(round6Image);
+
         titleEl.textContent = "I still have a lot of things I want to ask you someday…";
         textEl.textContent = "";
+        clearActions();
 
         const lines = [
           "To live together.",
@@ -515,22 +532,22 @@
         ];
         let i = 0;
 
-        clearActions();
+        const delay = 2200; // ✅ slower
         const tick = ()=>{
           if(i >= lines.length){
-            go(18);
+            go(22);
             return;
           }
           titleEl.textContent = lines[i];
           i++;
-          setTimeout(tick, 1250);
+          setTimeout(tick, delay);
         };
-        setTimeout(tick, 1250);
+        setTimeout(tick, delay);
         return;
       }
 
-      // --- SCREEN 18: Final question + choices ---
-      if(screen === 18){
+      // --- Screen 22 = Final question ---
+      if(screen === 22){
         hide(zone);
         titleEl.textContent = "Will you be my Valentine? 💖";
         textEl.textContent = "";
@@ -546,17 +563,19 @@
 
     function celebrate(){
       clearActions();
-      // music (after user interaction: should play most of the time)
       document.getElementById("ytMusic").src =
         "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
 
       show(result);
-      fullScreenConfetti();
+      if(confettiInstance){
+        confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
+      }
       setInterval(createHeart, 300);
     }
 
-    // Start
+    // start at ROUND 0
     go(0);
   </script>
 </body>
 </html>
+
