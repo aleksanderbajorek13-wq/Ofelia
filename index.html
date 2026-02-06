@@ -1,207 +1,597 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Will you be my Valentine?</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Will you be my Valentine?</title>
 
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
-<style>
-:root {
-  --bg1:#ffd6e7; --bg2:#ffeef6; --card:#ffffffcc;
-  --yes:#ff3b7a; --yesHover:#ff1f68;
-}
+  <style>
+    :root{
+      --bg1:#ffd6e7; --bg2:#ffeef6; --card:#ffffffcc;
+      --yes:#ff3b7a; --yesHover:#ff1f68;
+      --ink:#111827;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100svh; display:grid; place-items:center;
+      background:radial-gradient(circle at top,var(--bg2),var(--bg1));
+      font-family:system-ui,sans-serif; overflow:hidden; padding:16px;
+      color:var(--ink);
+    }
 
-*{box-sizing:border-box}
+    #confettiCanvas,#hearts{
+      position:fixed; inset:0; width:100vw; height:100vh;
+      pointer-events:none;
+    }
 
-body{
-  margin:0; min-height:100svh; display:grid; place-items:center;
-  background:radial-gradient(circle at top,var(--bg2),var(--bg1));
-  font-family:system-ui,sans-serif; overflow:hidden; padding:16px;
-}
+    #hearts span{
+      position:absolute; bottom:-20px;
+      font-size:24px; animation:floatUp linear infinite;
+      opacity:.9;
+    }
+    @keyframes floatUp{
+      from{transform:translateY(0) scale(.8); opacity:1}
+      to{transform:translateY(-110vh) scale(1.4); opacity:0}
+    }
 
-#confettiCanvas,#hearts{
-  position:fixed; inset:0; width:100vw; height:100vh;
-  pointer-events:none;
-}
+    .card{
+      width:min(720px,92vw); padding:26px 22px;
+      background:var(--card); backdrop-filter:blur(10px);
+      border-radius:22px; text-align:center;
+      box-shadow:0 18px 60px rgba(0,0,0,.15);
+      position:relative;
+    }
 
-#hearts span{
-  position:absolute; bottom:-20px;
-  font-size:24px; animation:floatUp linear infinite;
-  opacity:.9;
-}
+    h1{font-size:clamp(26px,4vw,44px); margin:10px 0 8px}
+    .sub{font-size:15px; opacity:.78; margin:0 0 14px}
 
-@keyframes floatUp{
-  from{transform:translateY(0) scale(.8); opacity:1}
-  to{transform:translateY(-110vh) scale(1.4); opacity:0}
-}
+    .button-zone{
+      position:relative; width:min(520px,92%);
+      height:170px; margin:0 auto;
+      touch-action:none;
+    }
 
-.card{
-  width:min(720px,92vw); padding:26px 22px;
-  background:var(--card); backdrop-filter:blur(10px);
-  border-radius:22px; text-align:center;
-  box-shadow:0 18px 60px rgba(0,0,0,.15);
-}
+    button{
+      border:none; cursor:pointer; font-weight:800;
+      border-radius:999px;
+      box-shadow:0 10px 24px rgba(0,0,0,.14);
+    }
 
-h1{font-size:clamp(26px,4vw,44px); margin:12px 0 8px}
-.sub{font-size:15px; opacity:.75; margin-bottom:12px}
+    .btn-main{
+      position:absolute;
+      padding:16px 24px; font-size:18px;
+      user-select:none;
+    }
 
-.button-zone{
-  position:relative; width:min(520px,92%);
-  height:150px; margin:0 auto; touch-action:none;
-}
+    #leftBtn{ background:var(--yes); color:#fff; }
+    #leftBtn:hover{ background:var(--yesHover); }
+    #rightBtn{ background:#e5e7eb; color:#111; }
 
-button{
-  position:absolute; top:50%; transform:translateY(-50%);
-  padding:16px 24px; font-size:18px; font-weight:800;
-  border-radius:999px; border:none; cursor:pointer;
-  box-shadow:0 10px 24px rgba(0,0,0,.14);
-}
+    .hint{margin-top:12px; font-size:13px; opacity:.8}
+    .toast{
+      display:none;
+      margin-top:10px;
+      font-size:30px;
+      font-weight:950;
+      opacity:.95;
+      animation:pop .35s ease;
+    }
 
-#yesBtn{left:18%; background:var(--yes); color:#fff}
-#yesBtn:hover{background:var(--yesHover)}
-#noBtn{left:62%; top:50%; transform:translateY(-50%); background:#e5e7eb}
+    .qwrap{
+      display:none;
+      margin-top:14px;
+      animation:pop .35s ease;
+    }
+    .qtitle{
+      font-weight:850;
+      margin:0 0 10px;
+    }
+    .qbtns{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .qbtn{
+      padding:12px 16px;
+      font-size:15px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.08);
+      box-shadow:0 10px 18px rgba(0,0,0,.10);
+    }
 
-.hint{margin-top:10px; font-size:13px; opacity:.7}
+    .actionWrap{
+      display:none;
+      margin-top:14px;
+      animation:pop .35s ease;
+    }
+    .actionBtn{
+      padding:14px 18px;
+      font-size:16px;
+      background:#fff;
+      border:1px solid rgba(0,0,0,.08);
+      box-shadow:0 10px 18px rgba(0,0,0,.10);
+    }
 
-.result{display:none; margin-top:18px; animation:pop .35s ease}
-.result h2{font-size:clamp(30px,4.5vw,46px); margin:10px 0}
-.loveText{font-size:22px; font-weight:700; color:#ff1f68}
+    #round6Image{
+      display:none;
+      width:100%;
+      max-width:460px;
+      margin:16px auto 0;
+      border-radius:14px;
+      box-shadow:0 12px 30px rgba(0,0,0,.25);
+      animation:pop .35s ease;
+    }
 
-@keyframes pop{
-  from{transform:scale(.96); opacity:0}
-  to{transform:scale(1); opacity:1}
-}
-</style>
+    .result{
+      display:none; margin-top:18px; animation:pop .35s ease;
+    }
+    .result h2{font-size:clamp(30px,4.5vw,46px); margin:10px 0}
+    .loveText{font-size:22px; font-weight:800; color:#ff1f68; margin-top:8px}
+
+    @keyframes pop{
+      from{transform:scale(.96); opacity:0}
+      to{transform:scale(1); opacity:1}
+    }
+  </style>
 </head>
 
 <body>
+  <canvas id="confettiCanvas"></canvas>
+  <div id="hearts"></div>
 
-<canvas id="confettiCanvas"></canvas>
-<div id="hearts"></div>
+  <!-- YouTube muziek (mobile kan soms autoplay blokkeren; werkt meestal na user click) -->
+  <iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
 
-<!-- YouTube muziek -->
-<iframe id="ytMusic" width="0" height="0" src="" frameborder="0" allow="autoplay"></iframe>
+  <main class="card">
+    <h1 id="title">Hey Ofelia… will you be my Valentine? 💖</h1>
+    <div class="sub" id="subtitle">Little game first 😈</div>
 
-<main class="card">
-  <h1 id="title">Hey Ofelia… will you be my Valentine? 💖</h1>
-  <div class="sub" id="subtitle">Choose wisely 😇</div>
+    <section class="button-zone" id="zone">
+      <button id="leftBtn" class="btn-main">Yes</button>
+      <button id="rightBtn" class="btn-main">No</button>
+    </section>
 
-  <section class="button-zone" id="zone">
-    <button id="yesBtn">Yes</button>
-    <button id="noBtn">No</button>
-  </section>
+    <div class="hint" id="hint"></div>
 
-  <div class="hint" id="hint">“No” seems a bit shy 😈</div>
+    <div class="toast" id="toast">NO 😢</div>
 
-  <section class="result" id="result">
-    <h2>YAY! 🎉</h2>
-    <div class="loveText">I knew you'd say yes ❤️</div>
-  </section>
-</main>
+    <section class="qwrap" id="qwrap">
+      <div class="qtitle" id="qtitle"></div>
+      <div class="qbtns" id="qbtns"></div>
+    </section>
 
-<script>
-const zone=document.getElementById("zone");
-const yesBtn=document.getElementById("yesBtn");
-const noBtn=document.getElementById("noBtn");
-const result=document.getElementById("result");
-const hint=document.getElementById("hint");
-const hearts=document.getElementById("hearts");
-const title=document.getElementById("title");
-const subtitle=document.getElementById("subtitle");
+    <section class="actionWrap" id="actionWrap">
+      <button class="actionBtn" id="actionBtn">Continue</button>
+    </section>
 
-const confettiCanvas=document.getElementById("confettiCanvas");
-const confettiInstance = window.confetti
-  ? confetti.create(confettiCanvas,{resize:true,useWorker:true})
-  : null;
+    <!-- ✅ ronde 6 afbeelding (zet round6.gif in dezelfde map als index.html) -->
+    <img id="round6Image" src="round6.gif" alt="round 6 moment" />
 
-function fullScreenConfetti(){
-  if(!confettiInstance) return;
-  confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
-}
+    <section class="result" id="result">
+      <h2>YAY! 🎉</h2>
+      <div class="loveText" id="finalText">I was hoping you'd say yes 💖</div>
+    </section>
+  </main>
 
-let yesScale=1;
-function growYes(){
-  yesScale=Math.min(2.2,yesScale+.08);
-  yesBtn.style.transform=`translateY(-50%) scale(${yesScale})`;
-}
+  <script>
+    // ---------- helpers ----------
+    const zone = document.getElementById("zone");
+    const leftBtn = document.getElementById("leftBtn");   // changes per round
+    const rightBtn = document.getElementById("rightBtn"); // changes per round
+    const title = document.getElementById("title");
+    const subtitle = document.getElementById("subtitle");
+    const hint = document.getElementById("hint");
+    const toast = document.getElementById("toast");
+    const qwrap = document.getElementById("qwrap");
+    const qtitle = document.getElementById("qtitle");
+    const qbtns = document.getElementById("qbtns");
+    const actionWrap = document.getElementById("actionWrap");
+    const actionBtn = document.getElementById("actionBtn");
+    const result = document.getElementById("result");
+    const round6Image = document.getElementById("round6Image");
 
-function clamp(n,min,max){return Math.max(min,Math.min(max,n))}
+    function show(el){ el.style.display = "block"; }
+    function hide(el){ el.style.display = "none"; }
+    function setToast(text, ms=900){
+      toast.textContent = text;
+      show(toast);
+      if(ms>0) setTimeout(()=>hide(toast), ms);
+    }
+    function setHint(html){ hint.innerHTML = html; }
+    function clearUIBits(){
+      hide(toast);
+      hide(qwrap);
+      hide(actionWrap);
+      hide(round6Image);
+    }
 
-function moveNo(px,py){
-  const z=zone.getBoundingClientRect();
-  const b=noBtn.getBoundingClientRect();
-  let dx=(b.left+b.width/2)-px;
-  let dy=(b.top+b.height/2)-py;
-  let mag=Math.hypot(dx,dy)||1;
-  dx/=mag; dy/=mag;
-  let newLeft=(b.left-z.left)+dx*140;
-  let newTop=(b.top-z.top)+dy*140;
-  noBtn.style.left=clamp(newLeft,0,z.width-b.width)+"px";
-  noBtn.style.top=clamp(newTop,0,z.height-b.height)+"px";
-  noBtn.style.transform="translateY(-50%)";
-  growYes();
-}
+    // confetti + hearts
+    const confettiCanvas = document.getElementById("confettiCanvas");
+    const confettiInstance = window.confetti
+      ? confetti.create(confettiCanvas,{resize:true,useWorker:true})
+      : null;
 
-zone.addEventListener("pointermove",e=>{
-  const b=noBtn.getBoundingClientRect();
-  const d=Math.hypot((b.left+b.width/2)-e.clientX,(b.top+b.height/2)-e.clientY);
-  if(d<140) moveNo(e.clientX,e.clientY);
-});
+    function fullScreenConfetti(){
+      if(!confettiInstance) return;
+      confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
+    }
 
-function createHeart(){
-  const span=document.createElement("span");
-  span.innerHTML="💖";
-  span.style.left=Math.random()*100+"vw";
-  span.style.animationDuration=4+Math.random()*4+"s";
-  hearts.appendChild(span);
-  setTimeout(()=>span.remove(),8000);
-}
+    const hearts = document.getElementById("hearts");
+    function createHeart(){
+      const span=document.createElement("span");
+      span.innerHTML="💖";
+      span.style.left=Math.random()*100+"vw";
+      span.style.animationDuration=4+Math.random()*4+"s";
+      hearts.appendChild(span);
+      setTimeout(()=>span.remove(),8000);
+    }
 
-function finalYes(){
-  document.getElementById("ytMusic").src =
-    "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
+    // positioning
+    function placeButtons(leftPct=18, rightPct=62){
+      leftBtn.style.left = leftPct + "%";
+      leftBtn.style.top = "50%";
+      leftBtn.style.transform = "translateY(-50%)";
+      rightBtn.style.left = rightPct + "%";
+      rightBtn.style.top = "50%";
+      rightBtn.style.transform = "translateY(-50%)";
+    }
+    placeButtons();
 
-  zone.style.display="none";
-  hint.style.display="none";
-  subtitle.style.display="none";
-  result.style.display="block";
+    function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+    function centerOf(btn){
+      const b = btn.getBoundingClientRect();
+      return { x: b.left + b.width/2, y: b.top + b.height/2, rect:b };
+    }
+    function dodge(btn, px, py, strength){
+      const z = zone.getBoundingClientRect();
+      const b = btn.getBoundingClientRect();
+      const c = { x: b.left + b.width/2, y: b.top + b.height/2 };
 
-  fullScreenConfetti();
-  setInterval(createHeart,300);
-}
+      let dx = c.x - px;
+      let dy = c.y - py;
+      let mag = Math.hypot(dx,dy) || 1;
+      dx/=mag; dy/=mag;
 
-/* 🎮 game stages */
-let stage = 1;
+      let newLeft = (b.left - z.left) + dx*strength;
+      let newTop  = (b.top  - z.top ) + dy*strength;
 
-yesBtn.addEventListener("click",()=>{
-  if(stage === 1){
-    stage = 2;
-    title.textContent = "NO 😢";
-    subtitle.textContent = "Are you sure you don’t want to be my Valentine?";
-    hint.textContent = "Think again…";
-    yesBtn.textContent = "Yes";
-    yesScale = 1;
-    yesBtn.style.transform="translateY(-50%) scale(1)";
-    return;
-  }
+      btn.style.left = clamp(newLeft, 0, z.width - b.width) + "px";
+      btn.style.top  = clamp(newTop , 0, z.height - b.height) + "px";
+      btn.style.transform = "translateY(-50%)";
+    }
+    function near(btn, px, py, dist){
+      const c = centerOf(btn);
+      return Math.hypot(c.x - px, c.y - py) < dist;
+    }
 
-  if(stage === 2){
-    stage = 3;
-    title.textContent = "NO 😢";
-    subtitle.textContent = "Like… really sure?";
-    hint.textContent = "Last chance 😳";
-    yesScale = 1;
-    yesBtn.style.transform="translateY(-50%) scale(1)";
-    return;
-  }
+    // question UI
+    function showQuestion(question, options, onPick){
+      qtitle.textContent = question;
+      qbtns.innerHTML = "";
+      options.forEach(opt=>{
+        const b = document.createElement("button");
+        b.className = "qbtn";
+        b.textContent = opt;
+        b.addEventListener("click", ()=>onPick(opt));
+        qbtns.appendChild(b);
+      });
+      show(qwrap);
+    }
 
-  // stage 3 = echte YES
-  finalYes();
-});
-</script>
+    function showAction(label, onClick){
+      actionBtn.textContent = label;
+      actionBtn.onclick = onClick;
+      show(actionWrap);
+    }
 
+    // ---------- game state ----------
+    let round = 1;
+    let yesScale = 1; // for earlier growth if you want later; kept minimal here
+    let swapTimer = null;
+    let round2Answered = false;
+
+    function gotoRound(n){
+      round = n;
+      clearUIBits();
+      placeButtons();
+      leftBtn.style.transform = "translateY(-50%) scale(1)";
+      yesScale = 1;
+      if(swapTimer){ clearInterval(swapTimer); swapTimer=null; }
+
+      // reset listeners by assigning handlers (we keep pointer handler global)
+      leftBtn.onclick = null;
+      rightBtn.onclick = null;
+
+      // show main UI again if hidden
+      zone.style.display = "block";
+      hint.style.display = "block";
+      subtitle.style.display = "block";
+
+      if(round === 1) setupRound1();
+      if(round === 2) setupRound2();
+      if(round === 3) setupRound3();
+      if(round === 4) setupRound4();
+      if(round === 5) setupRound5();
+      if(round === 6) setupRound6();
+      if(round === 7) setupRound7();
+    }
+
+    // ---------- R1 ----------
+    function setupRound1(){
+      title.textContent = "Hey Ofelia… will you be my Valentine? 💖";
+      subtitle.textContent = "Round 1 😈";
+      setHint('“Click <b>NO</b> for <b>YES</b> 👀”');
+
+      leftBtn.textContent = "Yes";
+      rightBtn.textContent = "No";
+
+      leftBtn.onclick = ()=> setToast("NO 😢", 900); // trap
+      rightBtn.onclick = ()=>{
+        hide(qwrap); hide(toast);
+        showAction("Continue 😇", ()=>{
+          hide(actionWrap);
+          gotoRound(2);
+        });
+        // small line
+        subtitle.textContent = "Okay… that was too easy 😅";
+      };
+    }
+
+    // ---------- R2 ----------
+    function setupRound2(){
+      round2Answered = false;
+      title.textContent = "Round 2 😏";
+      subtitle.textContent = "Try clicking YES 😈";
+      setHint("Just a little mindgame…");
+
+      leftBtn.textContent = "Yes";
+      rightBtn.textContent = "No";
+
+      // NO dodges in this round (handled in pointermove)
+      leftBtn.onclick = ()=>{
+        setToast("NO 😢", 1100);
+        if(round2Answered) return;
+
+        showQuestion("Be honest for a sec…", [
+          "I’m confused 😵‍💫",
+          "This is kinda fun 😏",
+          "Why am I smiling right now"
+        ], (opt)=>{
+          round2Answered = true;
+          hide(qwrap);
+          subtitle.textContent = "Yeah… I thought so.";
+          // short pause then move on
+          setTimeout(()=>gotoRound(3), 900);
+        });
+      };
+
+      rightBtn.onclick = ()=> setToast("NO 😢", 800);
+    }
+
+    // ---------- R3 ----------
+    function setupRound3(){
+      title.textContent = "Round 3 🤍";
+      subtitle.textContent = "No yes. No no.";
+      setHint("<b>No pressure.</b>");
+
+      leftBtn.textContent = "Think";
+      rightBtn.textContent = "Feel";
+
+      leftBtn.onclick = ()=>{
+        clearUIBits();
+        subtitle.textContent = "Thinking a little?";
+        setTimeout(()=>{
+          subtitle.textContent = "Yeah.";
+          setTimeout(()=>{
+            showQuestion("What was on your mind just now?", ["A lot", "Everything"], (pick)=>{
+              hide(qwrap);
+              if(pick === "A lot"){
+                subtitle.textContent = "Ah… so basically a lot about me.";
+              } else {
+                subtitle.textContent = "Yeah… that sounds about right. Including me.";
+              }
+              setTimeout(()=>{
+                subtitle.textContent = "I was kind of thinking about you too.";
+                showAction("Tell me more 👀", ()=> gotoRound(4));
+              }, 900);
+            });
+          }, 450);
+        }, 450);
+      };
+
+      rightBtn.onclick = ()=>{
+        clearUIBits();
+        subtitle.textContent = "Feeling person, huh.";
+        setTimeout(()=>{
+          subtitle.textContent = "I had a feeling you’d pick this one.";
+          setTimeout(()=>{
+            showQuestion("What were you feeling just now?", ["Happy", "Warm", "Excited"], (pick)=>{
+              hide(qwrap);
+              subtitle.textContent = "Makes sense.";
+              setTimeout(()=>{
+                subtitle.textContent = "You’re pretty much describing me.";
+                setTimeout(()=>{
+                  subtitle.textContent = "And don’t worry… I think that about you too.";
+                  showAction("Okay, show me more 😄", ()=> gotoRound(4));
+                }, 900);
+              }, 700);
+            });
+          }, 450);
+        }, 450);
+      };
+    }
+
+    // ---------- R4 ----------
+    function setupRound4(){
+      title.textContent = "Round 4 😏";
+      subtitle.textContent = "Okay… chaos time.";
+      setHint("");
+
+      leftBtn.textContent = "Yes";
+      rightBtn.textContent = "No";
+
+      // swap YES position 3–4 times
+      let swaps = 0;
+      const positions = [
+        {l:18, r:62},
+        {l:62, r:18},
+        {l:35, r:62},
+        {l:18, r:35},
+        {l:62, r:35},
+      ];
+      swapTimer = setInterval(()=>{
+        const p = positions[(swaps % positions.length)];
+        // only move YES; NO stays mostly
+        leftBtn.style.left = p.l + "%";
+        swaps++;
+        if(swaps >= 4){
+          clearInterval(swapTimer); swapTimer = null;
+          leftBtn.style.left = "18%";
+        }
+      }, 750);
+
+      leftBtn.onclick = ()=> setToast("NO 😢", 800); // little fake-outs
+      rightBtn.onclick = ()=> setToast("NO 😢", 800);
+
+      // show flirty text + fair enough
+      setTimeout(()=>{
+        title.textContent = "You know… this would’ve been way easier if I just asked.";
+        subtitle.textContent = "But where’s the fun in that? 😏";
+        showAction("Fair enough", ()=>{
+          hide(actionWrap);
+          title.textContent = "I know, right?";
+          subtitle.textContent = "";
+          setTimeout(()=>gotoRound(5), 3000);
+        });
+      }, 900);
+    }
+
+    // ---------- R5 ----------
+    function setupRound5(){
+      title.textContent = "Round 5 🤍";
+      subtitle.textContent = "";
+      setHint("");
+
+      // hide main zone buttons (no game here)
+      zone.style.display = "none";
+      hint.style.display = "none";
+
+      // show the gift moment as a question block
+      showQuestion("I don’t usually do things like this…", ["Okay"], ()=>{
+        hide(qwrap);
+        subtitle.style.display="block";
+        subtitle.textContent = "But I wanted this to feel a little different.";
+        showQuestion("", ["That’s sweet 🥺", "I like this 😊"], (pick)=>{
+          hide(qwrap);
+          subtitle.textContent = "Yeah… I’m glad you do.";
+          showAction("Okay, show me more 😄", ()=> gotoRound(6));
+        });
+      });
+    }
+
+    // ---------- R6 ----------
+    function setupRound6(){
+      title.textContent = "Round 6 👀";
+      subtitle.textContent = "Okay… one last thing.";
+      setHint("");
+
+      // show main zone again with two neutral buttons
+      zone.style.display = "block";
+      hint.style.display = "none";
+
+      leftBtn.textContent = "This one";
+      rightBtn.textContent = "That one";
+      placeButtons(22, 58);
+
+      const pickHandler = ()=>{
+        leftBtn.onclick = null;
+        rightBtn.onclick = null;
+
+        // show the image
+        show(round6Image);
+
+        // texts with pauses
+        subtitle.textContent = "No tricks this time. I promise.";
+        setTimeout(()=>{ subtitle.textContent = "Interesting."; }, 800);
+        setTimeout(()=>{ subtitle.textContent = "That actually says more than you think."; }, 1900);
+        setTimeout(()=>{ subtitle.textContent = "And that’s kind of why I did all of this."; }, 3200);
+
+        // fade into final
+        setTimeout(()=> gotoRound(7), 4500);
+      };
+
+      // prompt
+      subtitle.textContent = "Pick any button.";
+      leftBtn.onclick = pickHandler;
+      rightBtn.onclick = pickHandler;
+    }
+
+    // ---------- R7 (finale) ----------
+    function setupRound7(){
+      clearUIBits();
+      zone.style.display = "none";
+      hint.style.display = "none";
+
+      title.textContent = "Final round 💖";
+      subtitle.style.display = "block";
+
+      // build-up lines
+      const lines = [
+        "I still have a lot of things I want to ask you someday…",
+        "To live together.",
+        "To marry you.",
+        "To have kids with you.",
+        "But right now…",
+        "There’s only one thing I can ask."
+      ];
+
+      let i = 0;
+      subtitle.textContent = "";
+      const step = ()=>{
+        if(i >= lines.length){
+          // show the final question + choices
+          title.textContent = "Will you be my Valentine? 💖";
+          showQuestion("", ["Yes 💖", "Definitely 😌", "Of course 🥰"], ()=> celebrate());
+          return;
+        }
+        subtitle.textContent = lines[i];
+        i++;
+        setTimeout(step, 1250);
+      };
+      step();
+    }
+
+    function celebrate(){
+      hide(qwrap);
+      // music
+      document.getElementById("ytMusic").src =
+        "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE";
+
+      show(result);
+      fullScreenConfetti();
+      setInterval(createHeart, 300);
+    }
+
+    // ---------- pointer behaviour per round ----------
+    zone.addEventListener("pointermove", (e)=>{
+      const px=e.clientX, py=e.clientY;
+
+      if(round === 1){
+        // YES dodges
+        if(near(leftBtn, px, py, 150)) dodge(leftBtn, px, py, 140);
+      }
+      if(round === 2){
+        // NO dodges
+        if(near(rightBtn, px, py, 165)) dodge(rightBtn, px, py, 170);
+      }
+      // other rounds: no dodge needed
+    });
+
+    // start
+    gotoRound(1);
+  </script>
 </body>
 </html>
-
