@@ -284,37 +284,49 @@
       try { localStorage.setItem(key, val); } catch(e){}
     }
 
-    // ✅ MUSIC: start on slide "This one / That one"
+    // ✅ MUSIC: starts ONLY on screen 19 and never restarts afterwards
     const YT_ID = "5sMKX22BHeE";
     let musicStarted = false;
     let unmuteArmed = false;
+    let musicUnmuted = false;
 
-    function startMusicSoft(){
+    function startMusicSoftOnce(){
+      if(musicStarted) return;
       ytMusic.src =
         `https://www.youtube.com/embed/${YT_ID}` +
         `?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
       musicStarted = true;
     }
-    function unmuteMusic(){
+
+    function unmuteOnce(){
+      if(!musicStarted) return;
+      if(musicUnmuted) return; // ✅ never restart again
+      // This reloads the embed once to unmute (needs user gesture).
       ytMusic.src =
         `https://www.youtube.com/embed/${YT_ID}` +
         `?autoplay=1&mute=0&loop=1&playlist=${YT_ID}&playsinline=1&controls=0`;
-      musicStarted = true;
+      musicUnmuted = true;
     }
+
     function stopMusic(){
       ytMusic.src = "";
       musicStarted = false;
+      musicUnmuted = false;
     }
+
     function armUnmute(message="Tap anywhere for sound 🔊"){
       if(!musicStarted) return;
+      if(musicUnmuted) return;     // already unmuted
       if(unmuteArmed) return;
+
       unmuteArmed = true;
       setHint(message);
+
       card.onpointerdown = ()=>{
         if(!unmuteArmed) return;
         unmuteArmed = false;
         setHint("");
-        unmuteMusic();
+        unmuteOnce();
         card.onpointerdown = null;
       };
     }
@@ -338,7 +350,7 @@
       btnA.style.display = "block";
       btnB.style.display = "block";
 
-      // keep music running once started; only stop on full restart
+      // keep music running; only stop on full restart (screen 0)
       unmuteArmed = false;
       card.onpointerdown = null;
     }
@@ -404,6 +416,7 @@
     let obeyTimer = null;
     let obeyActive = false;
 
+    // Title easter egg (7x click)
     titleEl.style.cursor = "pointer";
     titleEl.addEventListener("click", ()=>{
       if(!secretTitleArmed) return;
@@ -707,7 +720,7 @@
         return;
       }
 
-      // ✅ MUSIC starts here (This one / That one). No extra hint later.
+      // ✅ MUSIC STARTS HERE (screen 19) and keeps playing; no restart later.
       if(screen === 19){
         titleEl.textContent = "Okay… one last thing.";
         textEl.textContent = "Pick any button.";
@@ -718,7 +731,7 @@
 
         requestAnimationFrame(()=>placeButtons(22, 58));
 
-        if(!musicStarted) startMusicSoft();
+        startMusicSoftOnce();       // ✅ start here
         armUnmute("Tap anywhere for sound 🔊"); // ✅ hint here only
 
         const pick = ()=> go(21);
@@ -763,7 +776,6 @@
         textEl.textContent = "";
         clearActions();
 
-        // ✅ no sound hint here anymore (it already appeared in screen 19)
         const yes = ()=> celebrate();
         addAction("Yes 💖", yes);
         addAction("Definitely 😌", yes);
@@ -777,10 +789,9 @@
     function celebrate(){
       clearActions();
 
-      // unmute on YES click (user gesture)
-      setHint("");
-      unmuteArmed = false;
-      unmuteMusic();
+      // ✅ IMPORTANT: do NOT restart music here.
+      // Only unmute once (first time) so it becomes audible, but doesn't restart later.
+      unmuteOnce();
 
       show(result);
       fullScreenConfetti();
