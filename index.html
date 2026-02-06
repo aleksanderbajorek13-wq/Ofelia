@@ -9,7 +9,12 @@
 
   <style>
     :root{
-      --bg1:#ffd6e7; --bg2:#ffeef6; --card:#ffffffcc;
+      /* ✅ Pastel geel achtergrond */
+      --bg1:#fff4c2;
+      --bg2:#fff9dd;
+
+      --card:#ffffffcc;
+
       --yes:#ff3b7a; --yesHover:#ff1f68;
       --ink:#111827;
     }
@@ -33,6 +38,7 @@
       position:absolute; bottom:-20px;
       font-size:24px; animation:floatUp linear infinite;
       opacity:.9;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,.12));
     }
     @keyframes floatUp{
       from{transform:translateY(0) scale(.8); opacity:1}
@@ -111,7 +117,15 @@
       padding:16px 24px;
       font-size:18px;
     }
-    #btnA{ background:var(--yes); color:#fff; }
+    #btnA{
+      background:var(--yes);
+      color:#fff;
+
+      /* ✨ optioneel: zachte "gold glow" die past bij pastel geel */
+      box-shadow:
+        0 10px 24px rgba(0,0,0,.14),
+        0 0 22px rgba(255, 215, 100, .55);
+    }
     #btnA:hover{ background:var(--yesHover); }
     #btnB{ background:#e5e7eb; color:#111; }
 
@@ -229,13 +243,23 @@
 
     function fullScreenConfetti(){
       if(!confettiInstance) return;
-      confettiInstance({particleCount:280,spread:160,origin:{x:.5,y:.6}});
+
+      // ✅ Pastel-geel/white confetti (past bij de nieuwe achtergrond)
+      confettiInstance({
+        particleCount:280,
+        spread:160,
+        origin:{x:.5,y:.6},
+        colors:["#ffe066","#fff3bf","#ffffff","#ffd6e7"]
+      });
     }
 
     const hearts = document.getElementById("hearts");
     function createHeart(){
       const span=document.createElement("span");
-      span.innerHTML="💖";
+
+      // ✅ Kleine extra: wissel tussen 💛 en 🌼
+      span.innerHTML = Math.random() > 0.5 ? "💛" : "🌼";
+
       span.style.left=Math.random()*100+"vw";
       span.style.animationDuration=4+Math.random()*4+"s";
       hearts.appendChild(span);
@@ -723,7 +747,6 @@
 
       // More reliable autoplay: muted
       ytMusic.src = "https://www.youtube.com/embed/5sMKX22BHeE?autoplay=1&loop=1&playlist=5sMKX22BHeE&playsinline=1";
-
 
       show(result);
       fullScreenConfetti();
